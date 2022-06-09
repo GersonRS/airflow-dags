@@ -11,4 +11,4 @@ with DAG(
    task_c = DummyOperator(task_id="task_c")
    task_d = DummyOperator(task_id="task_d")
    task_a >> [task_b, task_c]
-   task_c >> 
+   task_c >> task_d
