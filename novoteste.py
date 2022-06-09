@@ -2,7 +2,7 @@ from airflow.models import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.dummy_operator import DummyOperator
 with DAG(
-  "novo teste",
+  "novoteste",
   start_date=days_ago(1),
   schedule_interval=None,
 ) as dag:
