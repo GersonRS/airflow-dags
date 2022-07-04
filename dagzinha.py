@@ -1,17 +1,23 @@
 import json
 from datetime import datetime, timedelta
+from http import client
 
 from airflow.models import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
+from pymongo import MongoClient
 
 now = datetime.now()
 
 def save_posts(ti) -> None:
     posts = ti.xcom_pull(task_ids=['get_posts'])
-    with open('posts.json', 'w') as f:
-        json.dump(posts[0], f)
+    CONNECTION_STRING = "mongodb://root:MXIMbnLIi4@mongodb-1656957495.default.svc.cluster.local:27017"
+    cliente = MongoClient(CONNECTION_STRING)
+    banco = cliente["dags"]
+    tabela = banco["tabela"]
+    for post in posts[0]:
+        tabela.insert_one(post)
 
 with DAG(
     dag_id='api_dag',
