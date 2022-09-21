@@ -7,3 +7,4 @@ pytest-docker-tools
 mypy
 flake8
 black
+pytest-cov
