@@ -1,23 +1,25 @@
 import io
 import os
 import shutil
+from typing import Any, Dict, Generator, List
 
 import pandas as pd
 import pytest
 from minio import Minio
-from pytest_docker_tools import container, fetch, volume
+from pytest_docker_tools import container, fetch
+from pytest_docker_tools.wrappers import Container
 
 from dags.utils.constants import CURATED_ZONE, PROCESSING_ZONE
 
-os.environ["AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS"] = "False"  # Don't want anything to "magically" work
-os.environ["AIRFLOW__CORE__LOAD_EXAMPLES"] = "False"  # Don't want anything to "magically" work
-os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"  # Set default test settings, skip certain actions, etc.
-os.environ["AIRFLOW_HOME"] = os.path.dirname(os.path.dirname(__file__))  # Hardcode AIRFLOW_HOME to root of this project
+os.environ["AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS"] = "False"
+os.environ["AIRFLOW__CORE__LOAD_EXAMPLES"] = "False"
+os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"
+os.environ["AIRFLOW_HOME"] = os.path.dirname(os.path.dirname(__file__))
 
 
 minio_image = fetch(repository="minio/minio:latest")
 
-minio = container(
+minio: Container = container(
     image="{minio_image.id}",
     command=["server", "/data"],
     environment={
@@ -29,7 +31,7 @@ minio = container(
 
 
 @pytest.fixture(autouse=True, scope="session")
-def reset_db():
+def reset_db() -> Generator[Any, Any, Any]:
     """Reset the Airflow metastore for every test session."""
     from airflow.utils import db
 
@@ -44,7 +46,7 @@ def reset_db():
 
 
 @pytest.fixture()
-def client(minio, data_json):
+def client(minio: Container, data_json: List[Dict[str, Any]]) -> Minio:
     # set up connectivity with minio storage
     client = Minio(
         f"{minio.ips.primary}:{minio.ports['9000/tcp'][0]}",
@@ -55,7 +57,7 @@ def client(minio, data_json):
     # create buckets
     client.make_bucket(PROCESSING_ZONE)
     client.make_bucket(CURATED_ZONE)
-    
+
     # Upload data.
     df_business = pd.DataFrame.from_records(data_json)
     json_bytes = df_business.to_json(orient="records").encode("utf-8")
@@ -70,19 +72,20 @@ def client(minio, data_json):
 
     return client
 
+
 @pytest.fixture()
-def data_json():
+def data_json() -> List[Dict[str, Any]]:
     return [
         {
             "id": 1534,
             "user_id": 3183,
             "title": "Audio curvo vulgaris ulterius suggero traho adiuvo.",
-            "body": "Cubicularis capillus repellendus. Blandior ceno creo. Arto spoliatio circumvenio. Ventito cribro aspicio. Dolorem aggredior tredecim. Omnis acsi patria. Acer culpa stillicidium. Ubi arca volubilis. Eos claustrum creator. Consequuntur copiose capto. Ceno odit attero. Curatio pecco expedita. Talus verbum defessus. Voluptas decens aut. Vulgivagus catena curo. Vitium callide verbera. Somniculosus dolor maiores. Sapiente tribuo solutio. Tametsi stabilis cinis.",
+            "body": "Cubicularis capillus repellendus. Blandior ceno creo. Arto",
         },
         {
             "id": 1532,
             "user_id": 3178,
-            "title": "Cervus auxilium vorax abscido cavus urbs arcesso nemo venio campana vulgo.",
-            "body": "Capitulus ab vel. Armo utor cetera. Solvo dicta sono. Vester dedecor commodi. Tepidus ventosus velit. Nesciunt aperte subito. Adopto cum suasoria. Neque accendo turba. Cotidie amitto astrum. Tumultus thalassinus tabula. Cauda rem aliquam. Illum studio autem. Autem turpe campana. Omnis optio terminatio. Spectaculum chirographum apparatus.",
+            "title": "Cervus auxilium vorax abscido cavus urbs arcesso nemo venio",
+            "body": "Capitulus ab vel. Armo utor cetera. Solvo dicta sono. Vester",
         },
     ]

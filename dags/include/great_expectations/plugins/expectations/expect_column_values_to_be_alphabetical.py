@@ -91,6 +91,7 @@ class ColumnValuesAreAlphabetical(ColumnMapMetricProvider):
 
         return pandas.Series(output)
 
+
 # This class defines the Expectation itself
 # The main business logic for calculation lives here.
 class ExpectColumnValuesToBeAlphabetical(ColumnMapExpectation):
@@ -265,6 +266,9 @@ class ExpectColumnValuesToBeAlphabetical(ColumnMapExpectation):
     # This dictionary contains default values for any parameters that should have default values
     default_kwarg_values = {}
 
+
 if __name__ == "__main__":
-    diagnostics_report = ExpectColumnValuesToBeAlphabetical().print_diagnostic_checklist()
+    diagnostics_report = (
+        ExpectColumnValuesToBeAlphabetical().print_diagnostic_checklist()
+    )
     # print(json.dumps(diagnostics_report, indent=2))

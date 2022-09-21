@@ -1,7 +1,7 @@
 import os
 import pathlib
 import re
-from typing import List
+from typing import Any, List
 
 from setuptools import find_packages, setup
 
@@ -9,7 +9,7 @@ REGEXP = re.compile(r'^__version__\W*=\W*"([\d.abrc]+)"')
 PARENT = pathlib.Path(__file__).parent
 
 
-def read_version():
+def read_version() -> Any:
     init_py = os.path.join(
         os.path.dirname(__file__),
         "dags",

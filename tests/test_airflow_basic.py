@@ -1,26 +1,25 @@
 """Basic Airflow unit tests, by calling operator.execute()."""
 
 import datetime
-import io
-import json
-import os
-from http import client
-from unittest import mock
+from typing import Any
 
 import pandas as pd
 from airflow.models import DagBag
-from airflow.models.connection import Connection
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from airflow.utils.context import Context
 from dags.src.s3_etl_business import read_business_json_data
-from dags.utils.constants import CURATED_ZONE, PROCESSING_ZONE
+from dags.utils.constants import PROCESSING_ZONE
+from minio import Minio
+
+# from unittest import mock
 
 
-def return_today(**context):
+def return_today(**context: Any) -> str:
     return f"Today is {context['execution_date'].strftime('%d-%m-%Y')}"
 
 
-def test_dag_tags_and_import():
+def test_dag_tags_and_import() -> None:
     dag_bag = DagBag(include_examples=False)
 
     assert not dag_bag.import_errors
@@ -29,29 +28,31 @@ def test_dag_tags_and_import():
         assert dag.tags, f"{dag_id} in {dag.full_filepath} has no tags"
 
 
-def test_bash_operator():
+def test_bash_operator() -> None:
     """Validate a BashOperator"""
     test = BashOperator(task_id="test", bash_command="echo hello")
     result = test.execute(context={})
     assert result == "hello"
 
 
-def test_python_operator():
+def test_python_operator() -> None:
     """Validate a PythonOperator with a manually supplied execution_date."""
 
+    context: Context = Context()
+    context["execution_date"] = datetime.datetime(2021, 1, 1)
     test = PythonOperator(task_id="test", python_callable=return_today)
-    result = test.execute(context={"execution_date": datetime.datetime(2021, 1, 1)})
+    result = test.execute(context=context)
     assert result == "Today is 01-01-2021"
 
 
-# @mock.patch("airflow.providers.amazon.aws.hooks.s3.S3Hook.get_connection")
-@mock.patch("airflow.hooks.base.BaseHook.get_connection")
-def test_s3_etl_operator_with_docker(base_hook_mock, client):    
+def test_s3_etl_operator_with_docker(client: Minio) -> None:
 
     files = ["example.json"]
-
+    context: Context = Context()
+    context["files"] = files
+    context["client"] = client
     test = PythonOperator(task_id="test", python_callable=read_business_json_data)
-    list_names = test.execute(context={"files": files, "client": client})
+    list_names = test.execute(context=context)
 
     objects = client.list_objects(PROCESSING_ZONE)
     assert len(list(objects)) == len(files)
@@ -59,4 +60,6 @@ def test_s3_etl_operator_with_docker(base_hook_mock, client):
     for name in list_names:
         obj_curated = client.get_object("curated", name)
         df_curated = pd.read_csv(obj_curated)
-        assert "title" in list(df_curated.columns) and "body" in list(df_curated.columns)
+        assert "title" in list(df_curated.columns) and "body" in list(
+            df_curated.columns
+        )

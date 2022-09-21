@@ -4,3 +4,6 @@ pytest-helpers-namespace
 pytest-mock
 pytest
 pytest-docker-tools
+mypy
+flake8
+black
