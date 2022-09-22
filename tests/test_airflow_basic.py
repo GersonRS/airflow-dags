@@ -39,9 +39,9 @@ def test_python_operator() -> None:
     """Validate a PythonOperator with a manually supplied execution_date."""
 
     context: Context = Context()
-    context["execution_date"] = datetime.datetime(2021, 1, 1)
+    context["execution_date"] = datetime.datetime(2021, 1, 1)  # type: ignore
     test = PythonOperator(task_id="test", python_callable=return_today)
-    result = test.execute(context=context)
+    result = test.execute(context)
     assert result == "Today is 01-01-2021"
 
 
@@ -49,10 +49,10 @@ def test_s3_etl_operator_with_docker(client: Minio) -> None:
 
     files = ["example.json"]
     context: Context = Context()
-    context["files"] = files
-    context["client"] = client
+    context["files"] = files  # type: ignore
+    context["client"] = client  # type: ignore
     test = PythonOperator(task_id="test", python_callable=read_business_json_data)
-    list_names = test.execute(context=context)
+    list_names = test.execute(context)
 
     objects = client.list_objects(PROCESSING_ZONE)
     assert len(list(objects)) == len(files)
