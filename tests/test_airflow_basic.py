@@ -1,9 +1,10 @@
 """Basic Airflow unit tests, by calling operator.execute()."""
 
 import datetime
-from typing import Any
+from typing import Any, List
 
 import pandas as pd
+from airflow.decorators import task
 from airflow.models import DagBag
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
@@ -45,14 +46,17 @@ def test_python_operator() -> None:
     assert result == "Today is 01-01-2021"
 
 
-def test_s3_etl_operator_with_docker(client: Minio) -> None:
+def test_s3_etl_operator_with_docker(client: Minio, files: List[str]) -> None:
+    @task
+    def files():
+        return [[file] for file in files]
 
-    files = ["example.json"]
-    context: Context = Context()
-    context["files"] = files  # type: ignore
-    context["client"] = client  # type: ignore
-    test = PythonOperator(task_id="test", python_callable=read_business_json_data)
-    list_names = test.execute(context)
+    test = PythonOperator.partial(
+        task_id="test", python_callable=read_business_json_data
+    ).expand(
+        op_args=files()
+    )
+    list_names = test.execute({})
 
     objects = client.list_objects(PROCESSING_ZONE)
     assert len(list(objects)) == len(files)
