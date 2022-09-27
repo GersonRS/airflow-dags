@@ -3,7 +3,6 @@ from datetime import datetime
 from io import BytesIO
 
 import pandas as pd
-from dags.utils.constants import CURATED_ZONE, PROCESSING_ZONE
 from minio import Minio
 
 
@@ -17,7 +16,7 @@ def read_business_json_data(file: str) -> None:
     )
 
     obj_business = client.get_object(
-        PROCESSING_ZONE,
+        "processing",
         file,
     )
 
@@ -30,7 +29,7 @@ def read_business_json_data(file: str) -> None:
     name = f"business/{datetime.now().strftime('%Y%m%d')}/business-\
         {datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss')}.csv"
     client.put_object(
-        CURATED_ZONE,
+        "curated",
         name,
         data=csv_buffer,
         length=len(csv_bytes),
