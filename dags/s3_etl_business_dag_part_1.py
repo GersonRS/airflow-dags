@@ -40,7 +40,7 @@ with DAG(
     dag_id="s3-etl-business-part-1",
     default_args=default_args,
     catchup=False,
-    schedule_interval="@daily",
+    schedule_interval="@once",
     tags=["development", "s3", "sensor", "minio", "python", "mongodb"],
 ) as dag:
     # [END instantiate_dag]

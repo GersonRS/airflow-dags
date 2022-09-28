@@ -6,19 +6,24 @@
 from datetime import timedelta
 
 import airflow
-from airflow.decorators import task
+from airflow import XComArg
 
 # [START import_module]
 from airflow.models import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator
+from airflow.providers.amazon.aws.operators.s3 import (
+    S3DeleteObjectsOperator,
+    S3ListOperator,
+)
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
 
 from src.s3_etl_business import read_business_json_data
 
 # [START env_variables]
 from utils.constants import PROCESSING_ZONE
+
+# from airflow.decorators import task
+
 
 # [END env_variables]
 
@@ -42,7 +47,7 @@ with DAG(
     dag_id="s3-etl-business-part-2",
     default_args=default_args,
     catchup=False,
-    schedule_interval="@daily",
+    schedule_interval="@once",
     tags=["development", "s3", "sensor", "minio", "python", "mongodb"],
 ) as dag:
     # [END instantiate_dag]
@@ -59,31 +64,34 @@ with DAG(
     )
 
     # list all files inside of a bucket processing
-    @task
-    def get_s3_files(current_prefix):
+    # @task
+    # def get_s3_files(current_prefix):
 
-        s3_hook = S3Hook(aws_conn_id="my_aws")
+    #     s3_hook = S3Hook(aws_conn_id="my_aws")
 
-        current_files = s3_hook.list_keys(
-            bucket_name=PROCESSING_ZONE,
-            prefix="business/" + current_prefix + "/",
-            start_after_key="business/" + current_prefix + "/",
-        )
+    #     current_files = s3_hook.list_keys(
+    #         bucket_name=PROCESSING_ZONE,
+    #         prefix="business/" + current_prefix + "/",
+    #         start_after_key="business/" + current_prefix + "/",
+    #     )
 
-        return [[file] for file in current_files]
+    #     return [[file] for file in current_files]
 
-    # list_file_s3_processing_zone = S3ListOperator(
-    #     task_id="list_file_s3_processing_zone",
-    #     bucket=PROCESSING_ZONE,
-    #     prefix="business/" + "{{ ds_nodash }}" + "/",
-    #     delimiter="/",
-    #     aws_conn_id="my_aws",
-    # )
+    list_file_s3_processing_zone = S3ListOperator(
+        task_id="list_file_s3_processing_zone",
+        bucket=PROCESSING_ZONE,
+        prefix="business/" + "{{ ds_nodash }}" + "/",
+        delimiter="/",
+        aws_conn_id="my_aws",
+    )
+
+    # zipped_arguments = list_file_s3_processing_zone.zip()
 
     # apply transformation [python function]
     process_business_data = PythonOperator.partial(
         task_id="process_business_data", python_callable=read_business_json_data
-    ).expand(op_args=get_s3_files(current_prefix="{{ ds_nodash }}"))
+    ).expand(op_args=XComArg(list_file_s3_processing_zone))
+    # ).expand(op_args=get_s3_files(current_prefix="{{ ds_nodash }}"))
 
     # delete files from processed zone
     delete_s3_file_processed_zone = S3DeleteObjectsOperator(
@@ -99,6 +107,7 @@ with DAG(
 
     (
         verify_file_existence_processing
+        >> list_file_s3_processing_zone
         >> process_business_data
         >> delete_s3_file_processed_zone
     )
