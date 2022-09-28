@@ -24,18 +24,18 @@ jobs:
         with:
           max-line-length: 120
 
-  mypy:
-    # or specify a path!
-    runs-on: ubuntu-latest
-    steps:
-      - name: mypy check
-        uses: jpetrucciani/mypy-check@master
-        with:
-          path: '.'
+  # mypy:
+  #   # or specify a path!
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: mypy check
+  #       uses: jpetrucciani/mypy-check@master
+  #       with:
+  #         path: '.'
 
   tests:
     runs-on: ubuntu-latest
-    needs: [black, flake8, mypy]
+    needs: [black, flake8]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Python
