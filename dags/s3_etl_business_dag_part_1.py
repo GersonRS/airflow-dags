@@ -4,21 +4,22 @@
 # yugabytedb (postgres) database owshq created
 # [END pre_requisites]
 
+# [END env_variables]
 # [START import_module]
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import airflow
+from airflow import XComArg
 from airflow.models import DAG
-from airflow.providers.amazon.aws.operators.s3_copy_object import S3CopyObjectOperator
-from airflow.providers.amazon.aws.operators.s3_delete_objects import (
+from airflow.providers.amazon.aws.operators.s3 import (
+    S3CopyObjectOperator,
     S3DeleteObjectsOperator,
+    S3ListOperator,
 )
-from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
+from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
 
 # [START env_variables]
 from utils.constants import LANDING_ZONE, PROCESSING_ZONE
-
-# [END env_variables]
 
 # [END import_module]
 
@@ -57,14 +58,27 @@ with DAG(
         aws_conn_id="my_aws",
     )
 
+    list_file_s3_landing_zone = S3ListOperator(
+        task_id="list_file_s3_landing_zone",
+        bucket=LANDING_ZONE,
+        prefix="business/" + "{{ ds_nodash }}" + "/",
+        delimiter="/",
+        aws_conn_id="my_aws",
+    )
+
     # copy file from landing to processing zone
-    copy_s3_file_processed_zone = S3CopyObjectOperator(
+    copy_s3_file_processed_zone = S3CopyObjectOperator.partial(
         task_id="copy_s3_file_processed_zone",
         aws_conn_id="my_aws",
         source_bucket_name=LANDING_ZONE,
-        source_bucket_key="business/" + "{{ ds_nodash }}" + "/",
         dest_bucket_name=PROCESSING_ZONE,
-        dest_bucket_key="business/" + "{{ ds_nodash }}" + "/",
+    ).expand(
+        source_bucket_key=XComArg(list_file_s3_landing_zone),
+        dest_bucket_key=[
+            "business/"
+            + "{{ ds_nodash }}"
+            + f"/business-{datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss%f')}.json"
+        ],
     )
 
     # delete file from landing zone [old file]
@@ -78,6 +92,7 @@ with DAG(
     # [START task_sequence]
     (
         verify_file_existence_landing
+        >> list_file_s3_landing_zone
         >> copy_s3_file_processed_zone
         >> delete_s3_file_landing_zone
     )
