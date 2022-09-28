@@ -90,7 +90,7 @@ with DAG(
     # apply transformation [python function]
     process_business_data = PythonOperator.partial(
         task_id="process_business_data", python_callable=read_business_json_data
-    ).expand(op_args=XComArg(list_file_s3_processing_zone))
+    ).expand(op_args=[[value] for value in XComArg(list_file_s3_processing_zone)])
     # ).expand(op_args=get_s3_files(current_prefix="{{ ds_nodash }}"))
 
     # delete files from processed zone
