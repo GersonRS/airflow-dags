@@ -1,8 +1,3 @@
-# [START pre_requisites]
-# create connectivity to minio and yugabytedb on airflow ui [connections]
-# file yelp_business.json inside of landing/business bucket on minio
-# yugabytedb (postgres) database owshq created
-# [END pre_requisites]
 from datetime import timedelta
 
 import airflow

@@ -1,15 +1,9 @@
-# [START pre_requisites]
-# create connectivity to minio and yugabytedb on airflow ui [connections]
-# file yelp_business.json inside of landing/business bucket on minio
-# yugabytedb (postgres) database owshq created
-# [END pre_requisites]
-
-# [END env_variables]
-# [START import_module]
 from datetime import datetime, timedelta
 
 import airflow
 from airflow import XComArg
+
+# [START import_module]
 from airflow.models import DAG
 from airflow.providers.amazon.aws.operators.s3 import (
     S3CopyObjectOperator,
