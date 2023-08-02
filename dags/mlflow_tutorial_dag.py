@@ -7,7 +7,6 @@ create a new model using the CreateRegisteredModelOperator of the MLflow Airflow
 """
 
 from airflow.decorators import dag, task
-from astro.dataframes.pandas import DataFrame
 from mlflow_provider.hooks.client import MLflowClientHook
 from mlflow_provider.operators.registry import CreateRegisteredModelOperator
 from pendulum import datetime
@@ -66,7 +65,7 @@ def mlflow_tutorial_dag():
 
         scaler = StandardScaler()
 
-        with mlflow.start_run(experiment_id=experiment_id, run_name="Scaler") as run:
+        with mlflow.start_run(experiment_id=experiment_id, run_name="Scaler"):
             X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
             mlflow.sklearn.log_model(scaler, artifact_path="scaler")
             mlflow.log_metrics(pd.DataFrame(scaler.mean_, index=X.columns)[0].to_dict())
