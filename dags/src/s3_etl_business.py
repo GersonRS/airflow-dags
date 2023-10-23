@@ -4,8 +4,8 @@ from io import BytesIO
 from typing import Tuple
 
 import pandas as pd
-from dags.utils.constants import CURATED_ZONE, PROCESSING_ZONE
 from minio import Minio
+from utils.constants import CURATED_ZONE, PROCESSING_ZONE
 
 
 def read_business_json_data(*file: Tuple[str]) -> str:
