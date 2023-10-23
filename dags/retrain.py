@@ -93,7 +93,7 @@ def retrain():
         return feature_df
 
     @aql.dataframe(columns_names_capitalization="original")
-    def retrain(iris: DataFrame) -> dict[str, str]:
+    def retrain(iris: DataFrame):
         "Train a model and log it to MLFlow."
         import mlflow
         from sklearn.metrics import accuracy_score, log_loss
