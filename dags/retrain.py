@@ -121,7 +121,7 @@ def retrain():
 
         model = LogisticRegression()
 
-        with mlflow.start_run():
+        with mlflow.start_run(run_name="retrain"):
             model.fit(x_train, y_train)
             y_pred = model.predict(x_test)
 
@@ -218,14 +218,6 @@ def retrain():
     #     flavor="python_function",
     # )
 
-    # test_prediction = PredictOperator(
-    #     task_id="test_prediction",
-    #     target_uri="sagemaker:/us-east-2",
-    #     target_conn_id="aws_default",
-    #     deployment_name="{{ ti.xcom_pull(task_ids='create_deployment')['name'] }}",
-    #     inputs=DataFrame(data=test_sample["data"], columns=test_sample["columns"]),
-    # )
-
     test_prediction = ModelLoadAndPredictOperator(
         mlflow_conn_id="mlflow",
         task_id="test_prediction",
@@ -234,8 +226,16 @@ def retrain():
         + "/artifacts/model",
         data=DataFrame(data=test_sample["data"], columns=test_sample["columns"],
     )
+    # test_prediction = PredictOperator(
+    #     task_id="test_prediction",
+    #     target_uri="sagemaker:/us-east-2",
+    #     target_conn_id="aws_default",
+    #     deployment_name="{{ ti.xcom_pull(task_ids='create_deployment')['name'] }}",
+    #     inputs=DataFrame(data=test_sample["data"], columns=test_sample["columns"]),
+    # )
+    
 
-    chain(
+    (
         create_registered_model,
         create_model_version,
         transition_model,
