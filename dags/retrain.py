@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from airflow.decorators import dag, task
+from airflow.operators.empty import EmptyOperator
 from airflow.providers.slack.operators.slack import SlackAPIPostOperator
 from airflow.utils.edgemodifier import Label
 from airflow.utils.helpers import chain
@@ -14,12 +15,12 @@ from astro import sql as aql
 from astro.sql.table import Metadata, Table
 from mlflow_provider.hooks.base import MLflowBaseHook
 from mlflow_provider.operators.deployment import CreateDeploymentOperator, PredictOperator
+from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 from mlflow_provider.operators.registry import (
     CreateModelVersionOperator,
     CreateRegisteredModelOperator,
     TransitionModelVersionStageOperator,
 )
-from airflow.operators.empty import EmptyOperator
 from pandas import DataFrame
 from pendulum import datetime
 from sklearn.linear_model import LogisticRegression
@@ -33,7 +34,6 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 
 
 def metricas(y_test, y_predict):
@@ -154,10 +154,7 @@ def retrain():
                 "experiment_id": experiment.experiment_id,
                 "run_id": run_id,
                 "artifact_location": artifact_location,
-                "metrics": {
-                    "accuracy": acuracia,
-                    "prescision": precision
-                },
+                "metrics": {"accuracy": acuracia, "prescision": precision},
             }
 
     retrain_info = retrain(get_data())
@@ -224,7 +221,10 @@ def retrain():
         model_uri=f"s3://{MLFLOW_ARTIFACT_BUCKET}/"
         + "{{ ti.xcom_pull(task_ids='retrain')['run_id']}}"
         + "/artifacts/model",
-        data=DataFrame(data=test_sample["data"], columns=test_sample["columns"],
+        data=DataFrame(
+            data=test_sample["data"],
+            columns=test_sample["columns"],
+        ),
     )
     # test_prediction = PredictOperator(
     #     task_id="test_prediction",
@@ -233,9 +233,8 @@ def retrain():
     #     deployment_name="{{ ti.xcom_pull(task_ids='create_deployment')['name'] }}",
     #     inputs=DataFrame(data=test_sample["data"], columns=test_sample["columns"]),
     # )
-    
 
-    (
+    chain(
         create_registered_model,
         create_model_version,
         transition_model,
