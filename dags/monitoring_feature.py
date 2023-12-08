@@ -36,6 +36,7 @@ def feature_monitoring():
         # Load the data
         iris = load_iris(as_frame=True)
         data = pd.DataFrame(iris.data)
+        logging.info(data.head())
         return data
 
     @aql.dataframe
