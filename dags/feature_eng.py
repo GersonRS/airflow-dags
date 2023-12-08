@@ -25,6 +25,8 @@ MLFLOW_CONN_ID = "mlflow"
 EXPERIMENT_NAME = "poc"
 MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 
+XCOM_BUCKET = "localxcom"
+
 
 @dag(
     dag_id="feaure_engineering",
@@ -44,7 +46,7 @@ def feature_eng():
     create_buckets_if_not_exists = S3CreateBucketOperator.partial(
         task_id="create_buckets_if_not_exists",
         aws_conn_id=AWS_CONN_ID,
-    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET])
+    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET, XCOM_BUCKET])
 
     @task_group
     def prepare_mlflow_experiment():

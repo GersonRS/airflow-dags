@@ -47,9 +47,7 @@ def generate_values():
 
     true_values = generate_df_values(output_table=output_table)
 
-    cleanup = aql.cleanup()
-
-    true_values >> cleanup
+    true_values
 
 
 generate_true_values = generate_values()
