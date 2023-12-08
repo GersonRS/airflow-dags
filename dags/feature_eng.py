@@ -8,7 +8,6 @@ from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from astro.files import File
 from mlflow_provider.hooks.client import MLflowClientHook
-from pendulum import datetime
 from astro.sql.table import Table, Metadata
 import pandas as pd
 import logging
@@ -25,10 +24,6 @@ MLFLOW_ARTIFACT_BUCKET = "mlflow"
 MLFLOW_CONN_ID = "mlflow"
 EXPERIMENT_NAME = "poc"
 MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
-
-# Data parameters
-TARGET_COLUMN = "target"  # tail length in cm
-DATA_COLUMNS = ["sepal_length", "sepal_width", "petal_length", "petal_width", "target"]
 
 
 @dag(

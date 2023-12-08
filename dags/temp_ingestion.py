@@ -1,0 +1,55 @@
+"""
+### Generate True Values with MLflow
+
+Artificially generates feedback on the predictions made by the model in the predict DAG.
+"""
+from airflow.decorators import dag
+from astro import sql as aql
+from astro.sql.table import Table, Metadata
+from utils.constants import default_args
+
+
+@dag(
+    dag_id="temp_ingestion",
+    default_args=default_args,
+    catchup=False,
+    schedule_interval="@once",
+    default_view="graph",
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "Generate values"],
+    doc_md=__doc__,
+)
+def generate_values():
+    @aql.dataframe()
+    def generate_df_values():
+        from sklearn import datasets
+        import pandas as pd
+
+        # load iris dataset
+        iris = datasets.load_iris()
+        # Since this is a bunch, create a dataframe
+        df = pd.DataFrame(iris.data)
+        df.columns = ["sepal_length_cm", "sepal_width_cm", "petal_length_cm", "petal_width_cm"]
+
+        df["target"] = iris.target
+
+        df.dropna(how="all", inplace=True)  # remove any empty lines
+
+        return df
+
+    output_table = Table(
+        name="iris",
+        metadata=Metadata(
+            schema="public",
+            database="gold",
+        ),
+        conn_id="conn_postgres",
+    )
+
+    true_values = generate_df_values(output_table=output_table)
+
+    cleanup = aql.cleanup()
+
+    true_values >> cleanup
+
+
+generate_true_values = generate_values()
