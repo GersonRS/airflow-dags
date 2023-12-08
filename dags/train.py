@@ -125,6 +125,7 @@ def train():
         model_already_registered = EmptyOperator(task_id="model_already_registered")
 
         create_registered_model = CreateRegisteredModelOperator(
+            mlflow_conn_id=MLFLOW_CONN_ID,
             task_id="create_registered_model",
             name=REGISTERED_MODEL_NAME,
             tags=[
@@ -134,6 +135,7 @@ def train():
         )
 
         create_model_version = CreateModelVersionOperator(
+            mlflow_conn_id=MLFLOW_CONN_ID,
             task_id="create_model_version",
             name=REGISTERED_MODEL_NAME,
             source="s3://"
@@ -145,6 +147,7 @@ def train():
         )
 
         transition_model = TransitionModelVersionStageOperator(
+            mlflow_conn_id=MLFLOW_CONN_ID,
             task_id="transition_model",
             name=REGISTERED_MODEL_NAME,
             version="{{ ti.xcom_pull(task_ids='register_model.create_model_version')['model_version']['version'] }}",
