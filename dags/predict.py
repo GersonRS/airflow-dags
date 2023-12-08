@@ -78,21 +78,21 @@ def predict():
     @task
     def fetch_feature_df_test(**context):
         feature_df = context["ti"].xcom_pull(
-            dag_id="feature_eng", task_ids="build_features", include_prior_dates=True
+            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
         )
         return feature_df["X_test"]
 
     @task
     def fetch_target_test(**context):
         feature_df = context["ti"].xcom_pull(
-            dag_id="feature_eng", task_ids="build_features", include_prior_dates=True
+            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
         )
         return feature_df["y_test"]
 
     @task
     def fetch_model_run_id(**context):
         model_run_id = context["ti"].xcom_pull(
-            dag_id="train", task_ids="train_model", include_prior_dates=True
+            dag_id="train_model", task_ids="train_model", include_prior_dates=True
         )
         return model_run_id
 
