@@ -180,9 +180,9 @@ def feature_eng():
         name="iris",
         metadata=Metadata(
             schema="public",
-            database="gold",
+            database="curated",
         ),
-        conn_id="conn_postgres",
+        conn_id="conn_curated",
     )
 
     extracted_df = extract_data(input_table=input_table)
