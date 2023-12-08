@@ -32,7 +32,7 @@ DATA_COLUMNS = ["sepal_length", "sepal_width", "petal_length", "petal_width", "t
 
 
 @dag(
-    dag_id="Feaure Engineering",
+    dag_id="feaure_engineering",
     default_args=default_args,
     catchup=False,
     schedule_interval="@once",

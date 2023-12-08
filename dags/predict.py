@@ -63,13 +63,13 @@ def matriz_confusao(y_test, y_predict):
 
 
 @dag(
-    dag_id="Train Model",
+    dag_id="predict_model",
     default_args=default_args,
     catchup=False,
     schedule=[Dataset("model_trained")],
     default_view="graph",
     render_template_as_native_obj=True,
-    tags=["development", "s3", "minio", "python", "postgres", "ML", "Train"],
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "Predict"],
 )
 def predict():
     start = EmptyOperator(task_id="start")

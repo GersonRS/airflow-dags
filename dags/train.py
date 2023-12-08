@@ -31,7 +31,7 @@ TARGET_COLUMN = "target"
 
 
 @dag(
-    dag_id="Train Model",
+    dag_id="train_model",
     default_args=default_args,
     catchup=False,
     schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "_" + FILE_PATH)],
@@ -46,7 +46,7 @@ def train():
     def fetch_feature_df(**context):
         "Fetch the feature dataframe from the feature engineering DAG."
         feature_df = context["ti"].xcom_pull(
-            dag_id="Feaure Engineering", task_ids="feature_eng", include_prior_dates=True
+            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
         )
         return feature_df
 
