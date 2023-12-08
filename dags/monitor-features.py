@@ -16,23 +16,21 @@ from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from astro import sql as aql
-from astro.sql.table import Metadata, Table
-from pendulum import datetime
+from utils.constants import default_args
 
 
 @dag(
-    start_date=datetime(2022, 1, 1),
-    schedule=[Dataset("prediction_data")],
-    tags=["example"],
-    default_view="graph",
+    dag_id="monitoring_feature",
+    default_args=default_args,
     catchup=False,
-    doc_md=__doc__,
+    schedule=[Dataset("prediction_data")],
+    default_view="graph",
     render_template_as_native_obj=True,
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "Monitoring"],
 )
 def feature_monitoring():
     @aql.dataframe
     def get_ref_data(**context):
-        import pandas as pd
         from sklearn.datasets import load_iris
 
         # Load the data
@@ -43,11 +41,9 @@ def feature_monitoring():
     @aql.dataframe
     def get_curr_data(**context):
         feature_df = context["ti"].xcom_pull(
-            dag_id="feature_eng", task_ids="build_features", include_prior_dates=True
+            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
         )
-        feature_df.dropna(inplace=True)
-        feature_df.drop("target", axis=1, inplace=True)
-        return feature_df.to_numpy()
+        return pd.concat([feature_df["X_test"], feature_df["y_test"]], axis=1)
 
     @aql.dataframe(columns_names_capitalization="lower")
     def generate_reports(ref_data: pd.DataFrame, curr_data: pd.DataFrame):
@@ -67,26 +63,8 @@ def feature_monitoring():
 
         return suite.as_dict()
 
-    ref_table = Table(
-        name="iris_ground_truth",
-        metadata=Metadata(
-            schema="public",
-            database="feature_store",
-        ),
-        conn_id="postgres",
-    )
-
-    curr_table = Table(
-        name="new_features_predictions",
-        metadata=Metadata(
-            schema="public",
-            database="feature_store",
-        ),
-        conn_id="postgres",
-    )
-
-    ref_data = get_ref_data(input_table=ref_table)
-    curr_data = get_curr_data(input_table=curr_table)
+    ref_data = get_ref_data()
+    curr_data = get_curr_data()
 
     reports = generate_reports(ref_data=ref_data, curr_data=curr_data)
 
@@ -124,9 +102,9 @@ def feature_monitoring():
     #     channel="#integrations",
     # )
 
-    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="train")
+    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="train_model")
 
-    cleanup = aql.cleanup()
+    # cleanup = aql.cleanup()
     chain(
         reports,
         check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
@@ -134,7 +112,7 @@ def feature_monitoring():
         send_retrain_alert,
     )
 
-    reports >> [send_report, cleanup]
+    reports >> send_report
 
 
 feature_monitoring = feature_monitoring()
