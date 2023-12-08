@@ -147,7 +147,7 @@ def feature_eng():
         """
 
     @aql.dataframe()
-    def feature_eng(df: pd.DataFrame, experiment_id: str):
+    def feature_eng(df: pd.DataFrame, experiment_id: str, name: str):
         import mlflow
         import pandas as pd
         from sklearn.preprocessing import StandardScaler
@@ -163,7 +163,7 @@ def feature_eng():
         scaler = StandardScaler()
         X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
-        with mlflow.start_run(experiment_id=experiment_id, run_name="Scaler_{{ ds_nodash }}"):
+        with mlflow.start_run(experiment_id=experiment_id, run_name=name):
             mlflow.sklearn.log_model(scaler, artifact_path="scaler")
             mlflow.log_metrics(pd.DataFrame(scaler.mean_, index=X.columns)[0].to_dict())
 
@@ -205,6 +205,7 @@ def feature_eng():
         >> feature_eng(
             df=extracted_df,
             experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",
+            name="Scaler_{{ ds_nodash }}",
         )
         >> end
     )
