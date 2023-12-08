@@ -63,7 +63,7 @@ def matriz_confusao(y_test, y_predict):
 
 
 @dag(
-    dag_id="predict_model",
+    dag_id="predict",
     default_args=default_args,
     catchup=False,
     schedule=[Dataset("model_trained")],
