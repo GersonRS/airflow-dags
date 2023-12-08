@@ -1,8 +1,3 @@
-import os
-
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
 from airflow import Dataset
 from airflow.decorators import dag, task, task_group
 from airflow.operators.empty import EmptyOperator
@@ -14,21 +9,11 @@ from mlflow_provider.operators.registry import (
     CreateRegisteredModelOperator,
     TransitionModelVersionStageOperator,
 )
-from pendulum import datetime
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
-from sklearn.model_selection import train_test_split
+from utils.constants import default_args
+from typing import Dict
 
-FILE_PATH = "iris.csv"
-DATA_TABLE_PATH = "iris"
+FILE_PATH = "data.parquet"
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -45,33 +30,13 @@ MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 TARGET_COLUMN = "target"
 
 
-def metricas(y_test, y_predict):
-    acuracia = accuracy_score(y_test, y_predict)
-    precision = precision_score(y_test, y_predict, average="weighted")
-    recall = recall_score(y_test, y_predict, average="weighted")
-    f1 = f1_score(y_test, y_predict, average="weighted")
-    return acuracia, precision, recall, f1
-
-
-def matriz_confusao(y_test, y_predict):
-    matriz_conf = confusion_matrix(y_test.values.ravel(), y_predict)
-    fig = plt.figure()
-    ax = plt.subplot()
-    sns.heatmap(matriz_conf, annot=True, cmap="Blues", ax=ax)
-
-    ax.set_xlabel("Valor Predito")
-    ax.set_ylabel("Valor Real")
-    ax.set_title("Matriz de Confusão")
-    ax.xaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
-    ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
-    plt.close()
-    return fig
-
-
 @dag(
-    schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "_" + FILE_PATH)],
-    start_date=datetime(2023, 1, 1),
+    dag_id="Train Model",
+    default_args=default_args,
     catchup=False,
+    schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "_" + FILE_PATH)],
+    default_view="graph",
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "Train"],
 )
 def train():
     start = EmptyOperator(task_id="start")
@@ -80,9 +45,8 @@ def train():
     @task
     def fetch_feature_df(**context):
         "Fetch the feature dataframe from the feature engineering DAG."
-
         feature_df = context["ti"].xcom_pull(
-            dag_id="feature_eng", task_ids="build_features", include_prior_dates=True
+            dag_id="Feaure Engineering", task_ids="feature_eng", include_prior_dates=True
         )
         return feature_df
 
@@ -103,52 +67,22 @@ def train():
         raise ValueError(f"{experiment_name} not found in MLFlow experiments.")
 
     # Train a model
+    # @task(executor_config=etl_config)
     @aql.dataframe()
-    def train_model(
-        feature_df: DataFrame,
-        experiment_id: str,
-        target_column: str,
-        model_class: callable,
-        hyper_parameters: dict,
-        run_name: str,
-    ) -> str:
+    def train_model(feature_df: Dict[str, DataFrame], experiment_id: str) -> str:
         "Train a model and log it to MLFlow."
 
         import mlflow
 
         mlflow.sklearn.autolog()
 
-        X = feature_df.copy()
-        y = X.pop(target_column)
+        X_train = feature_df["X_train"]
+        y_train = feature_df["y_train"]
 
-        x_train, x_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=1, stratify=y
-        )
+        model = LogisticRegression()
 
-        model = model_class(**hyper_parameters)
-
-        with mlflow.start_run(experiment_id=experiment_id, run_name=run_name) as run:
-            model.fit(x_train, y_train)
-            y_pred = model.predict(x_test)
-
-            # Métricas
-            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
-            # Matriz de confusão
-            matriz_conf = matriz_confusao(y_test, y_pred)
-            temp_name = "confusion-matrix.png"
-            matriz_conf.savefig(temp_name)
-            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
-            try:
-                os.remove(temp_name)
-            except FileNotFoundError:
-                print(f"{temp_name} file is not found")
-
-            # Registro dos parâmetros e das métricas
-            mlflow.log_metric("Acuracia", acuracia)
-            mlflow.log_metric("Precision", precision)
-            mlflow.log_metric("Recall", recall)
-            mlflow.log_metric("F1-Score", f1)
-
+        with mlflow.start_run(experiment_id=experiment_id, run_name="ModelLR") as run:
+            model.fit(X_train, y_train)
             # Registro do modelo
             mlflow.sklearn.log_model(model, "model")
 
@@ -159,14 +93,7 @@ def train():
     fetched_feature_df = fetch_feature_df()
     fetched_experiment_id = fetch_experiment_id(experiment_name=EXPERIMENT_NAME)
 
-    model_trained = train_model(
-        feature_df=fetched_feature_df,
-        experiment_id=fetched_experiment_id,
-        target_column=TARGET_COLUMN,
-        model_class=LogisticRegression,
-        hyper_parameters={},
-        run_name="modelLR",
-    )
+    model_trained = train_model(feature_df=fetched_feature_df, experiment_id=fetched_experiment_id)
 
     @task_group
     def register_model():

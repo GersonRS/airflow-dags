@@ -16,6 +16,18 @@ from astro import sql as aql
 from astro.files import File
 from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 from pendulum import datetime
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
+import matplotlib.pyplot as plt
+import seaborn as sns
+from utils.constants import default_args
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -27,32 +39,55 @@ TARGET_COLUMN = "target"
 FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
 
 
+def metricas(y_test, y_predict):
+    acuracia = accuracy_score(y_test, y_predict)
+    precision = precision_score(y_test, y_predict, average="weighted")
+    recall = recall_score(y_test, y_predict, average="weighted")
+    f1 = f1_score(y_test, y_predict, average="weighted")
+    return acuracia, precision, recall, f1
+
+
+def matriz_confusao(y_test, y_predict):
+    matriz_conf = confusion_matrix(y_test.values.ravel(), y_predict)
+    fig = plt.figure()
+    ax = plt.subplot()
+    sns.heatmap(matriz_conf, annot=True, cmap="Blues", ax=ax)
+
+    ax.set_xlabel("Valor Predito")
+    ax.set_ylabel("Valor Real")
+    ax.set_title("Matriz de Confusão")
+    ax.xaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
+    ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
+    plt.close()
+    return fig
+
+
 @dag(
-    schedule=[Dataset("model_trained")],
-    start_date=datetime(2023, 1, 1),
+    dag_id="Train Model",
+    default_args=default_args,
     catchup=False,
+    schedule=[Dataset("model_trained")],
+    default_view="graph",
     render_template_as_native_obj=True,
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "Train"],
 )
 def predict():
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end", outlets=[Dataset("prediction_data")])
 
     @task
-    def fetch_feature_df_no_target(target_column, **context):
+    def fetch_feature_df_test(**context):
         feature_df = context["ti"].xcom_pull(
             dag_id="feature_eng", task_ids="build_features", include_prior_dates=True
         )
-        feature_df.dropna(inplace=True)
-        feature_df.drop(target_column, axis=1, inplace=True)
-        return feature_df.to_numpy()
+        return feature_df["X_test"]
 
     @task
-    def fetch_target(target_column, **context):
+    def fetch_target_test(**context):
         feature_df = context["ti"].xcom_pull(
             dag_id="feature_eng", task_ids="build_features", include_prior_dates=True
         )
-        feature_df.dropna(inplace=True)
-        return feature_df[[target_column]]
+        return feature_df["y_test"]
 
     @task
     def fetch_model_run_id(**context):
@@ -61,7 +96,7 @@ def predict():
         )
         return model_run_id
 
-    fetched_feature_df = fetch_feature_df_no_target(target_column=TARGET_COLUMN)
+    fetched_feature_df = fetch_feature_df_test()
     fetched_model_run_id = fetch_model_run_id()
 
     @task
@@ -95,6 +130,29 @@ def predict():
         df = pd.DataFrame(column_data, columns=["Predictions"], index=range(len(column_data)))
         return df
 
+    @aql.dataframe()
+    def metrics(y_test, y_pred, run_id):
+        import mlflow
+
+        with mlflow.start_run(run_id=run_id):
+            # Métricas
+            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
+            # Matriz de confusão
+            matriz_conf = matriz_confusao(y_test, y_pred)
+            temp_name = "confusion-matrix.png"
+            matriz_conf.savefig(temp_name)
+            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
+            try:
+                os.remove(temp_name)
+            except FileNotFoundError:
+                print(f"{temp_name} file is not found")
+
+            # Registro dos parâmetros e das métricas
+            mlflow.log_metric("Acuracia", acuracia)
+            mlflow.log_metric("Precision", precision)
+            mlflow.log_metric("Recall", recall)
+            mlflow.log_metric("F1-Score", f1)
+
     @task
     def plot_predictions(predictions, df):
         import matplotlib.pyplot as plt
@@ -127,7 +185,7 @@ def predict():
         plt.savefig("include/plots/iris.png")
         plt.close()
 
-    target_data = fetch_target(target_column=TARGET_COLUMN)
+    target_data = fetch_target_test()
     prediction_data = list_to_dataframe(run_prediction.output)
 
     pred_file = aql.export_file(

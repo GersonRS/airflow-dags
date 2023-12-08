@@ -9,9 +9,12 @@ from astro.dataframes.pandas import DataFrame
 from astro.files import File
 from mlflow_provider.hooks.client import MLflowClientHook
 from pendulum import datetime
+from astro.sql.table import Table, Metadata
+import pandas as pd
+import logging
+from utils.constants import default_args
 
-FILE_PATH = "iris.csv"
-DATA_TABLE_PATH = "iris"
+FILE_PATH = "data.parquet"
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -27,13 +30,14 @@ MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 TARGET_COLUMN = "target"  # tail length in cm
 DATA_COLUMNS = ["sepal_length", "sepal_width", "petal_length", "petal_width", "target"]
 
-XCOM_BUCKET = "localxcom"
-
 
 @dag(
-    schedule=None,
-    start_date=datetime(2023, 1, 1),
+    dag_id="Feaure Engineering",
+    default_args=default_args,
     catchup=False,
+    schedule_interval="@once",
+    default_view="graph",
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "feature engineering"],
 )
 def feature_eng():
     start = EmptyOperator(task_id="start")
@@ -45,7 +49,7 @@ def feature_eng():
     create_buckets_if_not_exists = S3CreateBucketOperator.partial(
         task_id="create_buckets_if_not_exists",
         aws_conn_id=AWS_CONN_ID,
-    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET, XCOM_BUCKET])
+    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET])
 
     @task_group
     def prepare_mlflow_experiment():
@@ -95,9 +99,7 @@ def feature_eng():
 
         experiment_already_exists = EmptyOperator(task_id="experiment_exists")
 
-        @task(
-            trigger_rule="none_failed",
-        )
+        @task(trigger_rule="none_failed")
         def get_current_experiment_id(experiment_name, max_results=1000):
             "Get the ID of the specified MLFlow experiment."
 
@@ -135,48 +137,60 @@ def feature_eng():
             >> experiment_id
         )
 
+    @aql.transform
+    def extract_data(input_table: Table) -> DataFrame:
+        return """
+            SELECT
+                sepal_length_cm,
+                sepal_width_cm,
+                petal_length_cm,
+                petal_width_cm,
+                target
+            FROM {{input_table}}
+        """
+
     @aql.dataframe()
-    def extract_data(data_table_path) -> DataFrame:
-        from deltalake import DeltaTable
-
-        # Load the data
-        data_table_path = "iris"
-        delta_table = DeltaTable(f"s3://gold/{data_table_path}")
-        df = delta_table.to_pandas()
-        df.columns = DATA_COLUMNS
-        print(df.head())
-
-        return df
-
-    @aql.dataframe()
-    def build_features(raw_df: DataFrame, experiment_id: str, target_column: str) -> DataFrame:
-        """Build machine learning features using the Astro Python SDK
-        and track them in MLFlow."""
-
+    def feature_eng(df: pd.DataFrame, experiment_id: str):
         import mlflow
         import pandas as pd
         from sklearn.preprocessing import StandardScaler
+        from sklearn.model_selection import train_test_split
 
         mlflow.sklearn.autolog()
 
-        target = target_column
-        X = raw_df.drop(target, axis=1)
-        y = raw_df[target]
-
-        print(X.head())
+        y = df["target"]
+        X = df.drop(columns=["target"])[
+            ["sepal_length_cm", "sepal_width_cm", "petal_length_cm", "petal_width_cm"]
+        ]
 
         scaler = StandardScaler()
+        X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
-        with mlflow.start_run(experiment_id=experiment_id, run_name="Scaler"):
-            X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+        with mlflow.start_run(experiment_id=experiment_id, run_name="Scaler_{{ ds_nodash }}"):
             mlflow.sklearn.log_model(scaler, artifact_path="scaler")
             mlflow.log_metrics(pd.DataFrame(scaler.mean_, index=X.columns)[0].to_dict())
-            X[target] = y
-            print(X.head())
 
-        return X
+        logging.info(pd.concat([X, y], axis=1).head())
 
-    extracted_df = extract_data(data_table_path=DATA_TABLE_PATH)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        return {
+            "X_train": X_train,
+            "X_test": X_test,
+            "y_train": y_train,
+            "y_test": y_test,
+        }
+
+    input_table = Table(
+        name="iris",
+        metadata=Metadata(
+            schema="public",
+            database="gold",
+        ),
+        conn_id="conn_postgres",
+    )
+
+    extracted_df = extract_data(input_table=input_table)
 
     save_data_to_other_s3 = aql.export_file(
         task_id="save_data_to_s3",
@@ -191,10 +205,9 @@ def feature_eng():
         start
         >> create_buckets_if_not_exists
         >> prepare_mlflow_experiment()
-        >> build_features(
-            raw_df=extracted_df,
+        >> feature_eng(
+            df=extracted_df,
             experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",
-            target_column=TARGET_COLUMN,
         )
         >> end
     )

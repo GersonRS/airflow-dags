@@ -46,3 +46,4 @@ statsmodels
 sympy
 tensorflow
 deltalake
+feast[postgres]
