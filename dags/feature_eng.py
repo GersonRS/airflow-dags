@@ -184,10 +184,10 @@ def feature_eng():
         y_test_df.index = X_test.index
 
         return {
-            "X_train": X_train,
-            "X_test": X_test,
-            "y_train": y_train,
-            "y_test": y_test,
+            "X_train": X_train_df,
+            "X_test": X_test_df,
+            "y_train": y_train_df,
+            "y_test": y_test_df,
         }
 
     input_table = Table(
