@@ -21,7 +21,7 @@ DATA_BUCKET_NAME = "data"
 MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
 # MLFlow parameters
-MLFLOW_CONN_ID = "mlflow"
+MLFLOW_CONN_ID = "conn_mlflow"
 EXPERIMENT_NAME = "poc"
 MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 
