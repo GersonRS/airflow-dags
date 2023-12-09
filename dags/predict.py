@@ -1,10 +1,3 @@
-"""
-### Run predictions on a dataset using the MLFLow Provider and plot the results
-
-This DAG utilizes the ModelLoadAndPredictOperator to run predictions on a dataset using a trained MLFlow model. The resulting
-predictions are plotted against the true values.
-"""
-
 import os
 
 import pandas as pd
@@ -14,16 +7,12 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from astro import sql as aql
 from astro.files import File
-from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
-from pendulum import datetime
 from sklearn.metrics import (
     accuracy_score,
-    classification_report,
     confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
-    roc_auc_score,
 )
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -33,7 +22,7 @@ from utils.constants import default_args
 AWS_CONN_ID = "conn_minio_s3"
 DATA_BUCKET_NAME = "data"
 MLFLOW_ARTIFACT_BUCKET = "mlflow"
-
+MLFLOW_CONN_ID = "conn_mlflow"
 # Data parameters
 TARGET_COLUMN = "target"
 FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
@@ -114,92 +103,95 @@ def predict():
             replace=True,
         )
 
-    run_prediction = ModelLoadAndPredictOperator(
-        mlflow_conn_id="mlflow_default",
-        task_id="run_prediction",
-        model_uri=f"s3://{MLFLOW_ARTIFACT_BUCKET}/"
-        + "{{ ti.xcom_pull(task_ids='fetch_model_run_id')}}"
-        + "/artifacts/model",
-        data=fetched_feature_df,
-    )
-
-    @aql.dataframe()
-    def list_to_dataframe(column_data):
-        df = pd.DataFrame(column_data, columns=["Predictions"], index=range(len(column_data)))
-        return df
-
-    @aql.dataframe()
-    def metrics(y_test, y_pred, run_id):
-        import mlflow
-
-        with mlflow.start_run(run_id=run_id):
-            # Métricas
-            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
-            # Matriz de confusão
-            matriz_conf = matriz_confusao(y_test, y_pred)
-            temp_name = "confusion-matrix.png"
-            matriz_conf.savefig(temp_name)
-            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
-            try:
-                os.remove(temp_name)
-            except FileNotFoundError:
-                print(f"{temp_name} file is not found")
-
-            # Registro dos parâmetros e das métricas
-            mlflow.log_metric("Acuracia", acuracia)
-            mlflow.log_metric("Precision", precision)
-            mlflow.log_metric("Recall", recall)
-            mlflow.log_metric("F1-Score", f1)
-
     @task
-    def plot_predictions(predictions, df):
-        import matplotlib.pyplot as plt
-
-        # Create a figure and axes
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        # Plot the prediction column in blue
-        ax.plot(
-            predictions.index,
-            predictions["Predictions"],
-            color="#1E88E5",
-            label="Predicted tail length",
+    def prediction(**context):
+        s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
+        file_contents = s3_hook.read_key(
+            key=context["ti"].xcom_pull(task_ids="fetch_model_run_id", key="run_id")
+            + "/artifacts/model/requirements.txt",
+            bucket_name=MLFLOW_ARTIFACT_BUCKET,
         )
+        print(file_contents)
 
-        # Plot the target column in green
-        ax.plot(df.index, df["taill"], color="#004D40", label="True tail length")
+    run_prediction = prediction()
 
-        # Set the title and labels
-        ax.set_title("Predicted vs True Possum Tail Lengths")
-        ax.set_xlabel("Tail length")
-        ax.set_ylabel("Animal number")
+    # @aql.dataframe()
+    # def list_to_dataframe(column_data):
+    #     df = pd.DataFrame(column_data, columns=["Predictions"], index=range(len(column_data)))
+    #     return df
 
-        # Add a legend
-        ax.legend(loc="lower right")
+    # @aql.dataframe()
+    # def metrics(y_test, y_pred, run_id):
+    #     import mlflow
 
-        os.makedirs(os.path.dirname("include/plots/"), exist_ok=True)
+    #     with mlflow.start_run(run_id=run_id):
+    #         # Métricas
+    #         acuracia, precision, recall, f1 = metricas(y_test, y_pred)
+    #         # Matriz de confusão
+    #         matriz_conf = matriz_confusao(y_test, y_pred)
+    #         temp_name = "confusion-matrix.png"
+    #         matriz_conf.savefig(temp_name)
+    #         mlflow.log_artifact(temp_name, "confusion-matrix-plots")
+    #         try:
+    #             os.remove(temp_name)
+    #         except FileNotFoundError:
+    #             print(f"{temp_name} file is not found")
 
-        # Save the plot as a PNG file
-        plt.savefig("include/plots/iris.png")
-        plt.close()
+    #         # Registro dos parâmetros e das métricas
+    #         mlflow.log_metric("Acuracia", acuracia)
+    #         mlflow.log_metric("Precision", precision)
+    #         mlflow.log_metric("Recall", recall)
+    #         mlflow.log_metric("F1-Score", f1)
+
+    # @task
+    # def plot_predictions(predictions, df):
+    #     import matplotlib.pyplot as plt
+
+    #     # Create a figure and axes
+    #     fig, ax = plt.subplots(figsize=(10, 6))
+
+    #     # Plot the prediction column in blue
+    #     ax.plot(
+    #         predictions.index,
+    #         predictions["Predictions"],
+    #         color="#1E88E5",
+    #         label="Predicted tail length",
+    #     )
+
+    #     # Plot the target column in green
+    #     ax.plot(df.index, df["taill"], color="#004D40", label="True tail length")
+
+    #     # Set the title and labels
+    #     ax.set_title("Predicted vs True Possum Tail Lengths")
+    #     ax.set_xlabel("Tail length")
+    #     ax.set_ylabel("Animal number")
+
+    #     # Add a legend
+    #     ax.legend(loc="lower right")
+
+    #     os.makedirs(os.path.dirname("include/plots/"), exist_ok=True)
+
+    #     # Save the plot as a PNG file
+    #     plt.savefig("include/plots/iris.png")
+    #     plt.close()
 
     target_data = fetch_target_test()
-    prediction_data = list_to_dataframe(run_prediction.output)
+    # prediction_data = list_to_dataframe(run_prediction.output)
 
-    pred_file = aql.export_file(
-        task_id="save_predictions",
-        input_data=prediction_data,
-        output_file=File(os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS)),
-        if_exists="replace",
-    )
+    # pred_file = aql.export_file(
+    #     task_id="save_predictions",
+    #     input_data=prediction_data,
+    #     output_file=File(os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS)),
+    #     if_exists="replace",
+    # )
 
     (
         start
-        >> [fetched_feature_df, fetched_model_run_id]
+        >> [fetched_feature_df, fetched_model_run_id, target_data]
         >> add_line_to_file()
         >> run_prediction
-        >> plot_predictions(prediction_data, target_data)
-        >> pred_file
+        # >> plot_predictions(prediction_data, target_data)
+        # >> pred_file
         >> end
     )
 

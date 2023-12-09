@@ -68,8 +68,8 @@ def train():
 
     # Train a model
     # @task(executor_config=etl_config)
-    @aql.dataframe()
-    def train_model(feature_df: Dict[str, DataFrame], experiment_id: str) -> str:
+    @aql.dataframe(multiple_outputs=True)
+    def train_model(feature_df: Dict[str, DataFrame], experiment_id: str):
         "Train a model and log it to MLFlow."
 
         import mlflow
@@ -88,7 +88,7 @@ def train():
 
         run_id = run.info.run_id
 
-        return run_id
+        return {"run_id": run_id, "model": model}
 
     fetched_feature_df = fetch_feature_df()
     fetched_experiment_id = fetch_experiment_id(experiment_name=EXPERIMENT_NAME)
@@ -141,8 +141,8 @@ def train():
             source="s3://"
             + MLFLOW_ARTIFACT_BUCKET
             + "/"
-            + "{{ ti.xcom_pull(task_ids='train_model') }}",
-            run_id="{{ ti.xcom_pull(task_ids='train_model') }}",
+            + "{{ ti.xcom_pull(task_ids='train_model', key='run_id') }}",
+            run_id="{{ ti.xcom_pull(task_ids='train_model', key='run_id') }}",
             trigger_rule="none_failed",
         )
 

@@ -1,10 +1,3 @@
-"""
-### Feature Monitoring with MLflow
-
-Uses Evidently to monitor the features in the feature store after features are added to the feature store by the feature engineering DAG.
-If drift is detected, a Slack notification is sent and a DAG is triggered to retrain the model.
-"""
-
 import logging
 
 import pandas as pd
@@ -48,7 +41,7 @@ def feature_monitoring():
 
     @aql.dataframe(columns_names_capitalization="lower")
     def generate_reports(ref_data: pd.DataFrame, curr_data: pd.DataFrame):
-        from evidently.test_preset import (  # NoTargetPerformanceTestPreset,; DataStabilityTestPreset
+        from evidently.test_preset import (
             DataDriftTestPreset,
         )
         from evidently.test_suite import TestSuite

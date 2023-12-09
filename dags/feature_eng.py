@@ -146,7 +146,7 @@ def feature_eng():
             FROM {{input_table}}
         """
 
-    @aql.dataframe()
+    @aql.dataframe(multiple_outputs=True)
     def feature_eng(df: pd.DataFrame, experiment_id: str, name: str):
         import mlflow
         import pandas as pd
