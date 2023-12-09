@@ -81,7 +81,7 @@ def predict():
     @task
     def fetch_model_run_id(**context):
         model_run_id = context["ti"].xcom_pull(
-            dag_id="train_model", task_ids="train_model", include_prior_dates=True
+            dag_id="train_model", task_ids="train_model", key="run_id", include_prior_dates=True
         )
         return model_run_id
 
@@ -108,7 +108,9 @@ def predict():
 
     @aql.dataframe()
     def prediction(data, **context):
-        model = context["ti"].xcom_pull(task_ids="fetch_model_run_id", key="run_id")
+        model = context["ti"].xcom_pull(
+            dag_id="train_model", task_ids="train_model", key="run_id", include_prior_dates=True
+        )
         result = model.predict(data)
         print(result)
         return result
