@@ -81,7 +81,7 @@ def predict():
     @task
     def fetch_model_run_id(**context):
         model_run_id = context["ti"].xcom_pull(
-            dag_id="train_model", task_ids="train_model", key="run_id", include_prior_dates=True
+            dag_id="train_model", task_ids="train_model", include_prior_dates=True
         )
         print(model_run_id)
         return model_run_id
@@ -100,18 +100,18 @@ def predict():
             updated_contents = file_contents + "\nboto3" + "\npandas"
             s3_hook.load_string(
                 updated_contents,
-                key=context["ti"].xcom_pull(task_ids="fetch_model_run_id")
-                + "/artifacts/model/requirements.txt",
+                key=run_id + "/artifacts/model/requirements.txt",
                 bucket_name=MLFLOW_ARTIFACT_BUCKET,
                 replace=True,
             )
 
     @aql.dataframe()
-    def prediction(data, **context):
-        model = context["ti"].xcom_pull(
-            dag_id="train_model", task_ids="train_model", key="run_id", include_prior_dates=True
-        )
-        result = model.predict(data)
+    def prediction(data, run_id):
+        import mlflow
+
+        logged_model = f"runs:/{run_id}/model"
+        loaded_model = mlflow.pyfunc.load_model(logged_model)
+        result = loaded_model.predict(pd.DataFrame(data))
         print(result)
         return result
 
