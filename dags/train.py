@@ -69,7 +69,7 @@ def train():
     # Train a model
     # @task(executor_config=etl_config)
     @aql.dataframe(multiple_outputs=True)
-    def train_model(feature_df: Dict[str, DataFrame], experiment_id: str):
+    def train_model(feature_df: Dict[str, DataFrame], experiment_id: str, run_name: str):
         "Train a model and log it to MLFlow."
 
         import mlflow
@@ -81,7 +81,7 @@ def train():
 
         model = LogisticRegression()
 
-        with mlflow.start_run(experiment_id=experiment_id, run_name="ModelLR") as run:
+        with mlflow.start_run(experiment_id=experiment_id, run_name=run_name) as run:
             model.fit(X_train, y_train)
             # Registro do modelo
             mlflow.sklearn.log_model(model, "model")
@@ -93,7 +93,11 @@ def train():
     fetched_feature_df = fetch_feature_df()
     fetched_experiment_id = fetch_experiment_id(experiment_name=EXPERIMENT_NAME)
 
-    model_trained = train_model(feature_df=fetched_feature_df, experiment_id=fetched_experiment_id)
+    model_trained = train_model(
+        feature_df=fetched_feature_df,
+        experiment_id=fetched_experiment_id,
+        run_name="ModelLR_{{ ds }}",
+    )
 
     @task_group
     def register_model():

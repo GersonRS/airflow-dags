@@ -83,6 +83,7 @@ def predict():
         model_run_id = context["ti"].xcom_pull(
             dag_id="train_model", task_ids="train_model", key="run_id", include_prior_dates=True
         )
+        print(model_run_id)
         return model_run_id
 
     fetched_feature_df = fetch_feature_df_test()
@@ -188,7 +189,7 @@ def predict():
 
     (
         start
-        >> [fetched_feature_df, fetched_model_run_id, target_data]
+        >> [target_data]
         >> add_line_to_file(run_id=fetched_model_run_id)
         >> run_prediction
         # >> plot_predictions(prediction_data, target_data)
