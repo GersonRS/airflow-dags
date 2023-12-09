@@ -108,7 +108,7 @@ def train():
     fetched_model_run_id = fetch_model_run_id()
 
     @task_group
-    def register_model():
+    def predict_model():
         from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 
         run_prediction = ModelLoadAndPredictOperator(
@@ -121,7 +121,12 @@ def train():
         )
         run_prediction
 
-    (start >> [fetch_feature_test, fetched_model_run_id, fetch_feature_target] >> end)
+    (
+        start
+        >> [fetch_feature_test, fetched_model_run_id, fetch_feature_target]
+        >> predict_model()
+        >> end
+    )
 
 
 train()
