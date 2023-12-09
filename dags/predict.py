@@ -187,7 +187,6 @@ def predict():
 
     (
         start
-        >> [target_data]
         >> add_line_to_file(run_id=fetched_model_run_id)
         >> run_prediction
         >> [
