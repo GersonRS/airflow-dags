@@ -4,6 +4,7 @@ from airflow.operators.empty import EmptyOperator
 from astro import sql as aql
 import pandas as pd
 from astro.files import File
+from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 from utils.constants import default_args
 from sklearn.metrics import (
     accuracy_score,
@@ -92,6 +93,9 @@ def train():
         model_run_id = context["ti"].xcom_pull(
             dag_id="train_model", task_ids="train_model", include_prior_dates=True
         )
+        import time
+
+        time.sleep(60)  # Sleep for 3 seconds
         return model_run_id
 
     fetch_feature_test = fetch_feature_test_df()
