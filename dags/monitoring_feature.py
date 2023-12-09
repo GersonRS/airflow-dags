@@ -59,21 +59,21 @@ def feature_monitoring():
         return suite.as_dict()
 
     ref_table = Table(
-        name="iris_ground_truth",
+        name="iris",
         metadata=Metadata(
             schema="public",
-            database="feature_store",
+            database="curated",
         ),
-        conn_id="postgres",
+        conn_id="conn_curated",
     )
 
     curr_table = Table(
-        name="new_features_predictions",
+        name="iris",
         metadata=Metadata(
             schema="public",
-            database="feature_store",
+            database="curated",
         ),
-        conn_id="postgres",
+        conn_id="conn_curated",
     )
 
     ref_data = get_ref_data(input_table=ref_table)

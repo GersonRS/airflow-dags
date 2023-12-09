@@ -34,7 +34,7 @@ TARGET_COLUMN = "target"
     dag_id="train_model",
     default_args=default_args,
     catchup=False,
-    schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "_" + FILE_PATH)],
+    schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FILE_PATH)],
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Train"],
 )
