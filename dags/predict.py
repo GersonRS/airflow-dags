@@ -68,7 +68,6 @@ def matriz_confusao(y_test, y_predict):
     catchup=False,
     schedule=[Dataset("model_trained")],
     default_view="graph",
-    render_template_as_native_obj=True,
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Predict"],
 )
 def predict():
