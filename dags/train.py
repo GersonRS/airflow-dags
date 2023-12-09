@@ -96,7 +96,7 @@ def train():
     model_trained = train_model(
         feature_df=fetched_feature_df,
         experiment_id=fetched_experiment_id,
-        run_name="ModelLR_{{ ds }}",
+        run_name="ModelLR-{{ ts_nodash }}",
     )
 
     @task_group
