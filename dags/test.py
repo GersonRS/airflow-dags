@@ -1,5 +1,5 @@
 import os
-from airflow.decorators import dag, task
+from airflow.decorators import dag, task, task_group
 from airflow.operators.empty import EmptyOperator
 from astro import sql as aql
 import pandas as pd
@@ -10,7 +10,6 @@ from mlflow_provider.operators.registry import (
     CreateRegisteredModelOperator,
     TransitionModelVersionStageOperator,
 )
-
 from utils.constants import default_args
 from sklearn.metrics import (
     accuracy_score,
@@ -107,6 +106,20 @@ def train():
     fetch_feature_test = fetch_feature_test_df()
     fetch_feature_target = fetch_feature_target_df()
     fetched_model_run_id = fetch_model_run_id()
+
+    @task_group
+    def register_model():
+        from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
+
+        run_prediction = ModelLoadAndPredictOperator(
+            mlflow_conn_id="mlflow_default",
+            task_id="run_prediction",
+            model_uri=f"s3://{MLFLOW_ARTIFACT_BUCKET}/"
+            + "{{ ti.xcom_pull(task_ids='fetch_model_run_id')}}"
+            + "/artifacts/model",
+            data=fetch_feature_test,
+        )
+        run_prediction
 
     (start >> [fetch_feature_test, fetched_model_run_id, fetch_feature_target] >> end)
 
