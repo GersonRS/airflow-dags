@@ -112,8 +112,8 @@ def predict():
         logged_model = f"runs:/{run_id}/model"
         loaded_model = mlflow.pyfunc.load_model(logged_model)
         result = loaded_model.predict(pd.DataFrame(data))
-        print(result)
-        return result
+        print(pd.DataFrame(result))
+        return pd.DataFrame(result)
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
