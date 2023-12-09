@@ -84,11 +84,20 @@ def feature_eng():
             Save artifacts to the specified S3 bucket."""
 
             mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
+            experiments_information = mlflow_hook.run(
+                endpoint="api/2.0/mlflow/experiments/search",
+                request_params={"max_results": 1000},
+            ).json()
+            num = -1000
+            for experiment in experiments_information["experiments"]:
+                if num < int(experiment["experiment_id"]):
+                    num = int(experiment["experiment_id"])
+
             new_experiment_information = mlflow_hook.run(
                 endpoint="api/2.0/mlflow/experiments/create",
                 request_params={
                     "name": experiment_name,
-                    "artifact_location": f"s3://{artifact_bucket}/",
+                    "artifact_location": f"s3://{artifact_bucket}/{num+1}",
                 },
             ).json()
 
