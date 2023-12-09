@@ -112,7 +112,7 @@ def train():
         from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 
         run_prediction = ModelLoadAndPredictOperator(
-            mlflow_conn_id="mlflow_default",
+            mlflow_conn_id=MLFLOW_CONN_ID,
             task_id="run_prediction",
             model_uri=f"s3://{MLFLOW_ARTIFACT_BUCKET}/"
             + "{{ ti.xcom_pull(task_ids='fetch_model_run_id')}}"
