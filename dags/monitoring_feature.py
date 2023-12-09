@@ -18,6 +18,7 @@ from astro.sql.table import Table, Metadata
     default_args=default_args,
     catchup=False,
     schedule=[Dataset("prediction_data")],
+    schedule_interval="@daily",
     default_view="graph",
     render_template_as_native_obj=True,
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Monitoring"],
