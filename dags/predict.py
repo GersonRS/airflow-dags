@@ -155,7 +155,7 @@ def predict():
         )
 
         # Plot the target column in green
-        ax.plot(y_test.index, y_test["taill"], color="#004D40", label="True tail length")
+        ax.plot(y_test.index, y_test["target"], color="#004D40", label="True tail length")
 
         # Set the title and labels
         ax.set_title("Predicted vs True Possum Tail Lengths")
