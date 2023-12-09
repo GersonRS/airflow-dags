@@ -30,4 +30,4 @@ def generate_values():
     start >> end
 
 
-generate_true_values = generate_values()
+generate_values()
