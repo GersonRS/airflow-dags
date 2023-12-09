@@ -10,7 +10,7 @@ from mlflow_provider.operators.registry import (
     CreateRegisteredModelOperator,
     TransitionModelVersionStageOperator,
 )
-from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
+
 from utils.constants import default_args
 from sklearn.metrics import (
     accuracy_score,
