@@ -5,11 +5,12 @@ from airflow import Dataset
 from airflow.decorators import dag, task
 from airflow.models.baseoperator import chain
 
-# from airflow.providers.slack.operators.slack import SlackAPIPostOperator
+from airflow.providers.slack.operators.slack import SlackAPIPostOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from astro import sql as aql
 from utils.constants import default_args
+from astro.sql.table import Table, Metadata
 
 
 @dag(
@@ -22,29 +23,31 @@ from utils.constants import default_args
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Monitoring"],
 )
 def feature_monitoring():
-    @aql.dataframe
-    def get_ref_data(**context):
-        from sklearn.datasets import load_iris
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
 
-        # Load the data
-        iris = load_iris(as_frame=True)
-        data = pd.DataFrame(iris.data)
-        logging.info(data.head())
-        return data
+    @aql.transform
+    def get_ref_data(input_table: Table):
+        return """
+        SELECT sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
+        FROM {{input_table}}
+        """
 
-    @aql.dataframe
-    def get_curr_data(**context):
-        feature_df = context["ti"].xcom_pull(
-            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
-        )
-        return pd.concat([feature_df["X_test"], feature_df["y_test"]], axis=1)
+    @aql.transform
+    def get_curr_data(input_table: Table):
+        return """
+        SELECT sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
+        FROM {{input_table}}
+        """
 
     @aql.dataframe(columns_names_capitalization="lower")
     def generate_reports(ref_data: pd.DataFrame, curr_data: pd.DataFrame):
-        from evidently.test_preset import (
-            DataDriftTestPreset,
-        )
         from evidently.test_suite import TestSuite
+        from evidently.test_preset import (
+            # NoTargetPerformanceTestPreset,
+            DataDriftTestPreset,
+            # DataStabilityTestPreset
+        )
 
         suite = TestSuite(
             tests=[
@@ -57,8 +60,26 @@ def feature_monitoring():
 
         return suite.as_dict()
 
-    ref_data = get_ref_data()
-    curr_data = get_curr_data()
+    ref_table = Table(
+        name="iris_ground_truth",
+        metadata=Metadata(
+            schema="public",
+            database="feature_store",
+        ),
+        conn_id="postgres",
+    )
+
+    curr_table = Table(
+        name="new_features_predictions",
+        metadata=Metadata(
+            schema="public",
+            database="feature_store",
+        ),
+        conn_id="postgres",
+    )
+
+    ref_data = get_ref_data(input_table=ref_table)
+    curr_data = get_curr_data(input_table=curr_table)
 
     reports = generate_reports(ref_data=ref_data, curr_data=curr_data)
 
@@ -90,23 +111,27 @@ def feature_monitoring():
     #     *Warning:* Retrain was triggered because of data drift conditions.
     #     {description}
     #     """.format(
-    #         description="{{ ti.xcom_pull(task_ids='generate_reports')['tests'][0]['description']
-    # }}"
+    #         description="{{ ti.xcom_pull(task_ids='generate_reports')['tests'][0]['description'] }}"
     #     ),
     #     channel="#integrations",
     # )
 
-    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="train_model")
+    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="retrain")
 
-    # cleanup = aql.cleanup()
-    chain(
-        reports,
-        check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
-        trigger_retrain,
-        send_retrain_alert,
+    cleanup = aql.cleanup()
+
+    (
+        start
+        >> chain(
+            reports,
+            check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
+            trigger_retrain,
+            send_retrain_alert,
+        )
+        >> end
     )
 
-    reports >> send_report
+    start >> reports >> [send_report, cleanup] >> end
 
 
 feature_monitoring = feature_monitoring()
