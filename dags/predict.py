@@ -185,8 +185,10 @@ def predict():
         start
         >> add_line_to_file(run_id=fetched_model_run_id)
         >> [
-            metrics(run_prediction, target_data, fetched_model_run_id),
-            plot_predictions(run_prediction, target_data, fetched_model_run_id),
+            metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
+            plot_predictions(
+                y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
+            ),
         ]
         >> pred_file
         >> end
