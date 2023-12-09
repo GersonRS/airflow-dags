@@ -32,6 +32,7 @@ XCOM_BUCKET = "localxcom"
     dag_id="feaure_engineering",
     default_args=default_args,
     catchup=False,
+    # schedule=[Dataset("astro://postgres@?table=new_features&schema=public&database=feature_store")],
     schedule_interval="@once",
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "feature engineering"],
