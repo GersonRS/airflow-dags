@@ -195,16 +195,7 @@ def train():
         if_exists="replace",
     )
 
-    (
-        start
-        >> [fetch_feature_test, fetched_model_run_id]
-        >> add_line_to_file()
-        >> run_prediction
-        >> metrics(fetch_feature_test, fetch_feature_target, fetched_model_run_id)
-        >> plot_predictions(prediction_data, fetch_feature_target)
-        >> pred_file
-        >> end
-    )
+    (start >> [fetch_feature_test, fetched_model_run_id, fetch_feature_target] >> end)
 
 
 train()
