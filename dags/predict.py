@@ -115,7 +115,7 @@ def predict():
         print(result)
         return result
 
-    run_prediction = prediction(fetched_feature_df)
+    run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
     # @aql.dataframe()
     # def list_to_dataframe(column_data):
