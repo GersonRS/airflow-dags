@@ -189,7 +189,7 @@ def predict():
     (
         start
         >> [fetched_feature_df, fetched_model_run_id, target_data]
-        >> add_line_to_file(fetched_model_run_id)
+        >> add_line_to_file(run_id=fetched_model_run_id)
         >> run_prediction
         # >> plot_predictions(prediction_data, target_data)
         # >> pred_file
