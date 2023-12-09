@@ -1,11 +1,10 @@
 import logging
 
 import pandas as pd
-from airflow import Dataset
 from airflow.decorators import dag, task
 from airflow.models.baseoperator import chain
 
-from airflow.providers.slack.operators.slack import SlackAPIPostOperator
+# from airflow.providers.slack.operators.slack import SlackAPIPostOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from astro import sql as aql
@@ -109,7 +108,7 @@ def feature_monitoring():
     #     *Warning:* Retrain was triggered because of data drift conditions.
     #     {description}
     #     """.format(
-    #         description="{{ ti.xcom_pull(task_ids='generate_reports')['tests'][0]['description'] }}"
+    #         description="{{ti.xcom_pull(task_ids='generate_reports')['tests'][0]['description']}}"
     #     ),
     #     channel="#integrations",
     # )
