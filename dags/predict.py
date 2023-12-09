@@ -111,14 +111,9 @@ def predict():
         logged_model = f"runs:/{run_id}/model"
         loaded_model = mlflow.pyfunc.load_model(logged_model)
         result = loaded_model.predict(pd.DataFrame(data))
-        return result
+        return pd.DataFrame(result, columns=["Predictions"], index=range(len(result)))
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
-
-    @aql.dataframe()
-    def list_to_dataframe(column_data):
-        df = pd.DataFrame(column_data, columns=["Predictions"], index=range(len(column_data)))
-        return df
 
     @aql.dataframe()
     def metrics(y_test, y_pred, run_id):
@@ -178,11 +173,10 @@ def predict():
             mlflow.log_artifact("include/plots/iris.png", "iris-plots")
 
     target_data = fetch_target_test()
-    prediction_data = list_to_dataframe(run_prediction)
 
     pred_file = aql.export_file(
         task_id="save_predictions",
-        input_data=prediction_data,
+        input_data=run_prediction,
         output_file=File(os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS)),
         if_exists="replace",
     )
@@ -190,10 +184,9 @@ def predict():
     (
         start
         >> add_line_to_file(run_id=fetched_model_run_id)
-        >> run_prediction
         >> [
-            metrics(prediction_data, target_data, fetched_model_run_id),
-            plot_predictions(prediction_data, target_data, fetched_model_run_id),
+            metrics(run_prediction, target_data, fetched_model_run_id),
+            plot_predictions(run_prediction, target_data, fetched_model_run_id),
         ]
         >> pred_file
         >> end
