@@ -94,14 +94,15 @@ def predict():
             + "/artifacts/model/requirements.txt",
             bucket_name=MLFLOW_ARTIFACT_BUCKET,
         )
-        updated_contents = file_contents + "\nboto3" + "\npandas"
-        s3_hook.load_string(
-            updated_contents,
-            key=context["ti"].xcom_pull(task_ids="fetch_model_run_id")
-            + "/artifacts/model/requirements.txt",
-            bucket_name=MLFLOW_ARTIFACT_BUCKET,
-            replace=True,
-        )
+        if "boto3" not in file_contents:
+            updated_contents = file_contents + "\nboto3" + "\npandas"
+            s3_hook.load_string(
+                updated_contents,
+                key=context["ti"].xcom_pull(task_ids="fetch_model_run_id")
+                + "/artifacts/model/requirements.txt",
+                bucket_name=MLFLOW_ARTIFACT_BUCKET,
+                replace=True,
+            )
 
     @aql.dataframe()
     def prediction(data, **context):
@@ -110,7 +111,7 @@ def predict():
         print(result)
         return result
 
-    run_prediction = prediction()
+    run_prediction = prediction(fetched_feature_df)
 
     # @aql.dataframe()
     # def list_to_dataframe(column_data):
@@ -184,7 +185,7 @@ def predict():
 
     (
         start
-        >> [fetched_feature_df, fetched_model_run_id, target_data]
+        >> [fetched_model_run_id, target_data]
         >> add_line_to_file()
         >> run_prediction
         # >> plot_predictions(prediction_data, target_data)
