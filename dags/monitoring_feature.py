@@ -23,9 +23,6 @@ from astro.sql.table import Table, Metadata
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Monitoring"],
 )
 def feature_monitoring():
-    start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end")
-
     @aql.transform
     def get_ref_data(input_table: Table):
         return """
@@ -120,18 +117,14 @@ def feature_monitoring():
 
     cleanup = aql.cleanup()
 
-    (
-        start
-        >> chain(
-            reports,
-            check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
-            trigger_retrain,
-            send_retrain_alert,
-        )
-        >> end
+    chain(
+        reports,
+        check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
+        trigger_retrain,
+        send_retrain_alert,
     )
 
-    start >> reports >> [send_report, cleanup] >> end
+    reports >> [send_report, cleanup]
 
 
 feature_monitoring = feature_monitoring()
