@@ -151,16 +151,16 @@ def predict():
             y_pred.index,
             y_pred["Predictions"],
             color="#1E88E5",
-            label="Predicted tail length",
+            label="Predicted target",
         )
 
         # Plot the target column in green
-        ax.plot(y_test.index, y_test["target"], color="#004D40", label="True tail length")
+        ax.plot(y_test.index, y_test["target"], color="#004D40", label="True target")
 
         # Set the title and labels
-        ax.set_title("Predicted vs True Possum Tail Lengths")
-        ax.set_xlabel("Tail length")
-        ax.set_ylabel("Animal number")
+        ax.set_title("Predicted vs True target")
+        ax.set_xlabel("Target")
+        ax.set_ylabel("Predict")
 
         # Add a legend
         ax.legend(loc="lower right")
