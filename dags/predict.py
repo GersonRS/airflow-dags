@@ -1,5 +1,4 @@
 import os
-import mlflow
 import pandas as pd
 from airflow import Dataset
 from airflow.decorators import dag, task
@@ -123,6 +122,8 @@ def predict():
 
     @aql.dataframe()
     def metrics(y_test, y_pred, run_id):
+        import mlflow
+
         with mlflow.start_run(run_id=run_id):
             # Métricas
             acuracia, precision, recall, f1 = metricas(y_test, y_pred)
@@ -144,6 +145,7 @@ def predict():
 
     @task
     def plot_predictions(y_test, y_pred, run_id):
+        import mlflow
         import matplotlib.pyplot as plt
 
         # Create a figure and axes
