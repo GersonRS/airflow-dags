@@ -89,11 +89,10 @@ def predict():
     fetched_model_run_id = fetch_model_run_id()
 
     @task
-    def add_line_to_file(**context):
+    def add_line_to_file(run_id: str, **context):
         s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
         file_contents = s3_hook.read_key(
-            key=context["ti"].xcom_pull(task_ids="fetch_model_run_id")
-            + "/artifacts/model/requirements.txt",
+            key=run_id + "/artifacts/model/requirements.txt",
             bucket_name=MLFLOW_ARTIFACT_BUCKET,
         )
         if "boto3" not in file_contents:
@@ -189,8 +188,8 @@ def predict():
 
     (
         start
-        >> [fetched_model_run_id, target_data]
-        >> add_line_to_file()
+        >> [fetched_feature_df, fetched_model_run_id, target_data]
+        >> add_line_to_file(fetched_model_run_id)
         >> run_prediction
         # >> plot_predictions(prediction_data, target_data)
         # >> pred_file
