@@ -83,32 +83,31 @@ def predict():
         model_run_id = context["ti"].xcom_pull(
             dag_id="train_model", task_ids="train_model", include_prior_dates=True
         )
-        print(model_run_id)
         return model_run_id
+
+    @task
+    def fetch_experiment_id(**context):
+        experiment_id = context["ti"].xcom_pull(
+            dag_id="train_model", task_ids="fetch_experiment_id", include_prior_dates=True
+        )
+        return experiment_id
 
     fetched_feature_df = fetch_feature_df_test()
     fetched_model_run_id = fetch_model_run_id()
+    fetched_experiment_id = fetch_experiment_id()
 
     @task
-    def add_line_to_file(run_id: str):
-        mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
-        experiments_information = mlflow_hook.run(
-            endpoint="api/2.0/mlflow/artifacts/list",
-            request_params={"run_id": run_id},
-        ).json()
-
-        print(experiments_information)
-
+    def add_line_to_file(run_id: str, experiment_id: str):
         s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
         file_contents = s3_hook.read_key(
-            key=run_id + "/artifacts/model/requirements.txt",
+            key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
             bucket_name=MLFLOW_ARTIFACT_BUCKET,
         )
         if "boto3" not in file_contents:
             updated_contents = file_contents + "\nboto3" + "\npandas"
             s3_hook.load_string(
                 updated_contents,
-                key=run_id + "/artifacts/model/requirements.txt",
+                key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
                 bucket_name=MLFLOW_ARTIFACT_BUCKET,
                 replace=True,
             )
@@ -194,7 +193,7 @@ def predict():
 
     (
         start
-        >> add_line_to_file(run_id=fetched_model_run_id)
+        >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
         >> [
             metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(
