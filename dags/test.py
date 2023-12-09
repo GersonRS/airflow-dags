@@ -5,7 +5,6 @@ from astro import sql as aql
 import pandas as pd
 from astro.files import File
 from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from utils.constants import default_args
 from sklearn.metrics import (
     accuracy_score,
