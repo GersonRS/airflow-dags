@@ -103,15 +103,12 @@ def predict():
             replace=True,
         )
 
-    @task
-    def prediction(**context):
-        s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
-        file_contents = s3_hook.read_key(
-            key=context["ti"].xcom_pull(task_ids="fetch_model_run_id", key="run_id")
-            + "/artifacts/model/requirements.txt",
-            bucket_name=MLFLOW_ARTIFACT_BUCKET,
-        )
-        print(file_contents)
+    @aql.dataframe()
+    def prediction(data, **context):
+        model = context["ti"].xcom_pull(task_ids="fetch_model_run_id", key="run_id")
+        result = model.predict(data)
+        print(result)
+        return result
 
     run_prediction = prediction()
 
