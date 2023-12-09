@@ -34,7 +34,7 @@ TARGET_COLUMN = "target"
     dag_id="teste_1",
     default_args=default_args,
     catchup=False,
-    schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "_" + FILE_PATH)],
+    schedule=None,
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Train"],
 )
@@ -60,7 +60,10 @@ def train():
         print(feature_df["y_test"].head())
         return feature_df["y_test"]
 
-    (start >> [fetch_feature_test_df, fetch_feature_target_df] >> end)
+    fetch_feature_test = fetch_feature_test_df()
+    fetch_feature_target = fetch_feature_target_df()
+
+    (start >> [fetch_feature_test, fetch_feature_target] >> end)
 
 
 train()
