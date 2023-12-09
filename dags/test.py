@@ -22,12 +22,12 @@ def generate_values():
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    @task
-    def fetch_feature_df_test(**context):
-        feature_df = context["ti"].xcom_pull(dag_id="feaure_engineering", task_ids="feature_eng")
-        return feature_df["X_test"]
+    # @task
+    # def fetch_feature_df_test(**context):
+    #     feature_df = context["ti"].xcom_pull(dag_id="feaure_engineering", task_ids="feature_eng")
+    #     return feature_df["X_test"]
 
-    (start >> fetch_feature_df_test >> end)
+    start >> end
 
 
 generate_true_values = generate_values()
