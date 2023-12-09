@@ -55,7 +55,7 @@ def generate_values():
 
     true_values = generate_df_values(output_table=output_table)
 
-    start >> true_values >> fetch_feature_df_test >> end
+    (start >> [true_values, fetch_feature_df_test] >> end)
 
 
 generate_true_values = generate_values()
