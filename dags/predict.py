@@ -1,5 +1,5 @@
 import os
-
+import mlflow
 import pandas as pd
 from airflow import Dataset
 from airflow.decorators import dag, task
@@ -112,88 +112,89 @@ def predict():
         logged_model = f"runs:/{run_id}/model"
         loaded_model = mlflow.pyfunc.load_model(logged_model)
         result = loaded_model.predict(pd.DataFrame(data))
-        print(pd.DataFrame(result))
-        return pd.DataFrame(result)
+        return result
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
-    # @aql.dataframe()
-    # def list_to_dataframe(column_data):
-    #     df = pd.DataFrame(column_data, columns=["Predictions"], index=range(len(column_data)))
-    #     return df
+    @aql.dataframe()
+    def list_to_dataframe(column_data):
+        df = pd.DataFrame(column_data, columns=["Predictions"], index=range(len(column_data)))
+        return df
 
-    # @aql.dataframe()
-    # def metrics(y_test, y_pred, run_id):
-    #     import mlflow
+    @aql.dataframe()
+    def metrics(y_test, y_pred, run_id):
+        with mlflow.start_run(run_id=run_id):
+            # Métricas
+            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
+            # Matriz de confusão
+            matriz_conf = matriz_confusao(y_test, y_pred)
+            temp_name = "confusion-matrix.png"
+            matriz_conf.savefig(temp_name)
+            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
+            try:
+                os.remove(temp_name)
+            except FileNotFoundError:
+                print(f"{temp_name} file is not found")
 
-    #     with mlflow.start_run(run_id=run_id):
-    #         # Métricas
-    #         acuracia, precision, recall, f1 = metricas(y_test, y_pred)
-    #         # Matriz de confusão
-    #         matriz_conf = matriz_confusao(y_test, y_pred)
-    #         temp_name = "confusion-matrix.png"
-    #         matriz_conf.savefig(temp_name)
-    #         mlflow.log_artifact(temp_name, "confusion-matrix-plots")
-    #         try:
-    #             os.remove(temp_name)
-    #         except FileNotFoundError:
-    #             print(f"{temp_name} file is not found")
+            # Registro dos parâmetros e das métricas
+            mlflow.log_metric("Acuracia", acuracia)
+            mlflow.log_metric("Precision", precision)
+            mlflow.log_metric("Recall", recall)
+            mlflow.log_metric("F1-Score", f1)
 
-    #         # Registro dos parâmetros e das métricas
-    #         mlflow.log_metric("Acuracia", acuracia)
-    #         mlflow.log_metric("Precision", precision)
-    #         mlflow.log_metric("Recall", recall)
-    #         mlflow.log_metric("F1-Score", f1)
+    @task
+    def plot_predictions(y_test, y_pred, run_id):
+        import matplotlib.pyplot as plt
 
-    # @task
-    # def plot_predictions(predictions, df):
-    #     import matplotlib.pyplot as plt
+        # Create a figure and axes
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-    #     # Create a figure and axes
-    #     fig, ax = plt.subplots(figsize=(10, 6))
+        # Plot the prediction column in blue
+        ax.plot(
+            y_pred.index,
+            y_pred["Predictions"],
+            color="#1E88E5",
+            label="Predicted tail length",
+        )
 
-    #     # Plot the prediction column in blue
-    #     ax.plot(
-    #         predictions.index,
-    #         predictions["Predictions"],
-    #         color="#1E88E5",
-    #         label="Predicted tail length",
-    #     )
+        # Plot the target column in green
+        ax.plot(y_test.index, y_test["taill"], color="#004D40", label="True tail length")
 
-    #     # Plot the target column in green
-    #     ax.plot(df.index, df["taill"], color="#004D40", label="True tail length")
+        # Set the title and labels
+        ax.set_title("Predicted vs True Possum Tail Lengths")
+        ax.set_xlabel("Tail length")
+        ax.set_ylabel("Animal number")
 
-    #     # Set the title and labels
-    #     ax.set_title("Predicted vs True Possum Tail Lengths")
-    #     ax.set_xlabel("Tail length")
-    #     ax.set_ylabel("Animal number")
+        # Add a legend
+        ax.legend(loc="lower right")
 
-    #     # Add a legend
-    #     ax.legend(loc="lower right")
-
-    #     os.makedirs(os.path.dirname("include/plots/"), exist_ok=True)
-
-    #     # Save the plot as a PNG file
-    #     plt.savefig("include/plots/iris.png")
-    #     plt.close()
+        os.makedirs(os.path.dirname("include/plots/"), exist_ok=True)
+        # Save the plot as a PNG file
+        plt.savefig("include/plots/iris.png")
+        plt.close()
+        with mlflow.start_run(run_id=run_id):
+            mlflow.log_artifact("include/plots/iris.png", "iris-plots")
 
     target_data = fetch_target_test()
-    # prediction_data = list_to_dataframe(run_prediction.output)
+    prediction_data = list_to_dataframe(run_prediction)
 
-    # pred_file = aql.export_file(
-    #     task_id="save_predictions",
-    #     input_data=prediction_data,
-    #     output_file=File(os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS)),
-    #     if_exists="replace",
-    # )
+    pred_file = aql.export_file(
+        task_id="save_predictions",
+        input_data=prediction_data,
+        output_file=File(os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS)),
+        if_exists="replace",
+    )
 
     (
         start
         >> [target_data]
         >> add_line_to_file(run_id=fetched_model_run_id)
         >> run_prediction
-        # >> plot_predictions(prediction_data, target_data)
-        # >> pred_file
+        >> [
+            metrics(prediction_data, target_data, fetched_model_run_id),
+            plot_predictions(prediction_data, target_data, fetched_model_run_id),
+        ]
+        >> pred_file
         >> end
     )
 
