@@ -4,7 +4,6 @@ from airflow.operators.empty import EmptyOperator
 from astro import sql as aql
 import pandas as pd
 from astro.files import File
-from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
 from utils.constants import default_args
 from sklearn.metrics import (
     accuracy_score,
