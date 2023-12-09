@@ -66,7 +66,9 @@ def predict():
 
     @task
     def fetch_feature_df_test(**context):
-        feature_df = context["ti"].xcom_pull(dag_id="feaure_engineering", task_ids="feature_eng")
+        feature_df = context["ti"].xcom_pull(
+            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
+        )
         return feature_df["X_test"]
 
     @task
