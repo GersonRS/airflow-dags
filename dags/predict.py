@@ -4,6 +4,7 @@ from airflow import Dataset
 from airflow.decorators import dag, task
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from mlflow_provider.hooks.client import MLflowClientHook
 from astro import sql as aql
 from astro.files import File
 from sklearn.metrics import (
@@ -89,7 +90,15 @@ def predict():
     fetched_model_run_id = fetch_model_run_id()
 
     @task
-    def add_line_to_file(run_id: str, **context):
+    def add_line_to_file(run_id: str):
+        mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
+        experiments_information = mlflow_hook.run(
+            endpoint="api/2.0/mlflow/artifacts/list",
+            request_params={"run_id": run_id},
+        ).json()
+
+        print(experiments_information)
+
         s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
         file_contents = s3_hook.read_key(
             key=run_id + "/artifacts/model/requirements.txt",
