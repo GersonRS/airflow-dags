@@ -1,110 +1,52 @@
 """
-### Model Prediction with MLflow
+### Generate True Values with MLflow
 
-Uses the MLflow provider package's ModelLoadAndPredictOperator to load a model from the MLflow model registry and make predictions on new data.
+Artificially generates feedback on the predictions made by the model in the predict DAG.
 """
-
-from airflow.decorators import dag, task
-from pendulum import datetime
+from airflow.decorators import dag
 from astro import sql as aql
-from mlflow_provider.operators.registry import GetLatestModelVersionsOperator
-from mlflow_provider.operators.pyfunc import ModelLoadAndPredictOperator
-
 from astro.sql.table import Table, Metadata
-
-from pandas import DataFrame
-
-QUERY_STATEMENT = """
-        SELECT feature_id, sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
-        FROM public.new_features ORDER BY feature_id
-    """
+from utils.constants import default_args
 
 
 @dag(
-    start_date=datetime(2022, 1, 1),
-    schedule=None,
-    default_args={"mlflow_conn_id": "mlflow_default"},
-    tags=["example"],
+    dag_id="test",
+    default_args=default_args,
     catchup=False,
-    doc_md=__doc__,
-    render_template_as_native_obj=True,
+    schedule_interval="@once",
+    default_view="graph",
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "Generate values"],
 )
-def predict():
-    """
-    ### Sample DAG
+def generate_values():
+    @aql.dataframe()
+    def generate_df_values():
+        from sklearn import datasets
+        import pandas as pd
 
-    Showcases the sample provider package's operator and sensor.
+        # load iris dataset
+        iris = datasets.load_iris()
+        # Since this is a bunch, create a dataframe
+        df = pd.DataFrame(iris.data)
+        df.columns = ["sepal_length_cm", "sepal_width_cm", "petal_length_cm", "petal_width_cm"]
 
-    To run this example, create an HTTP connection with:
-    - id: mlflow_default
-    - type: http
-    - host: MLflow tracking URI (if MLFlow is hosted on Databricks use your Databricks host)
-    """
+        df["target"] = iris.target
 
-    @task(multiple_outputs=True)
-    def preprocess(result_list: list):
-        columns = [
-            "feature_id",
-            "sepal_length_cm",
-            "sepal_width_cm",
-            "petal_length_cm",
-            "petal_width_cm",
-        ]
-        df = DataFrame(data=result_list, columns=columns)
-        return {
-            "values": df.drop("feature_id", axis=1).values.tolist(),
-            "ids": df["feature_id"].to_list(),
-        }
+        df.dropna(how="all", inplace=True)  # remove any empty lines
 
-    preprocessed = preprocess(
-        result_list=aql.get_value_list(sql=QUERY_STATEMENT, conn_id="postgres")
-    )
-
-    latest_staging_model = GetLatestModelVersionsOperator(
-        task_id="latest_staging_model", name="mlflow_lightgbm_tutorial", stages=["Staging"]
-    )
-
-    prediction = ModelLoadAndPredictOperator(
-        task_id="prediction",
-        model_uri="mlflow-artifacts:/3/{{ ti.xcom_pull(task_ids='latest_staging_model')['model_versions'][0]['run_id'] }}/artifacts/model",
-        data="{{ ti.xcom_pull(task_ids='preprocess', key='values') }}",
-    )
-
-    output_table = Table(name="tmp_predictions", conn_id="postgres", temp=True)
-
-    @aql.dataframe(columns_names_capitalization="lower")
-    def post_process(results: list, ids: list):
-        final_prediction = []
-
-        for result in results:
-            max_index = result.index(max(result))
-            final_prediction.append(max_index)
-
-        df = DataFrame(data=ids, columns=["feature_id"])
-        df["prediction"] = final_prediction
         return df
 
-    classes = post_process(
-        results=prediction.output,
-        ids="{{ ti.xcom_pull(task_ids='preprocess', key='ids') }}",
-        output_table=output_table,
-    )
-
-    target_table = Table(
-        name="predictions",
+    output_table = Table(
+        name="iris",
         metadata=Metadata(
             schema="public",
-            database="feature_store",
+            database="curated",
         ),
-        conn_id="postgres",
+        conn_id="conn_curated",
     )
 
-    load_predictions = aql.append(
-        source_table=output_table, target_table=target_table, columns=["feature_id", "prediction"]
-    )
+    true_values = generate_df_values(output_table=output_table)
 
-    cleanup = aql.cleanup()
-    preprocessed >> latest_staging_model >> prediction >> classes >> load_predictions >> cleanup
+    true_values
 
 
-predict = predict()
+generate_true_values = generate_values()
