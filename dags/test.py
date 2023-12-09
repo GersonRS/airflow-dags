@@ -1,6 +1,39 @@
 from airflow.decorators import dag, task
 from airflow.operators.empty import EmptyOperator
 from utils.constants import default_args
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+def metricas(y_test, y_predict):
+    acuracia = accuracy_score(y_test, y_predict)
+    precision = precision_score(y_test, y_predict, average="weighted")
+    recall = recall_score(y_test, y_predict, average="weighted")
+    f1 = f1_score(y_test, y_predict, average="weighted")
+    return acuracia, precision, recall, f1
+
+
+def matriz_confusao(y_test, y_predict):
+    matriz_conf = confusion_matrix(y_test.values.ravel(), y_predict)
+    fig = plt.figure()
+    ax = plt.subplot()
+    sns.heatmap(matriz_conf, annot=True, cmap="Blues", ax=ax)
+
+    ax.set_xlabel("Valor Predito")
+    ax.set_ylabel("Valor Real")
+    ax.set_title("Matriz de Confusão")
+    ax.xaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
+    ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
+    plt.close()
+    return fig
+
 
 FILE_PATH = "data.parquet"
 
