@@ -16,7 +16,6 @@ from utils.constants import default_args
     schedule_interval="@once",
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Generate values"],
-    doc_md=__doc__,
 )
 def generate_values():
     @aql.dataframe()
