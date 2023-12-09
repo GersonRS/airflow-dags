@@ -22,7 +22,7 @@ MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
 # MLFlow parameters
 MLFLOW_CONN_ID = "conn_mlflow"
-EXPERIMENT_NAME = "poc"
+EXPERIMENT_NAME = "Default"
 MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 
 XCOM_BUCKET = "localxcom"
@@ -40,7 +40,7 @@ def feature_eng():
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(
         task_id="end",
-        outlets=[Dataset("s3://" + DATA_BUCKET_NAME + "_" + FILE_PATH)],
+        outlets=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FILE_PATH)],
     )
 
     create_buckets_if_not_exists = S3CreateBucketOperator.partial(
@@ -217,7 +217,7 @@ def feature_eng():
         >> feature_eng(
             df=extracted_df,
             experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",
-            name="Scaler_{{ ds_nodash }}",
+            name="Scaler_{{ ts_nodash }}",
         )
         >> end
     )
