@@ -27,35 +27,7 @@ def generate_values():
         feature_df = context["ti"].xcom_pull(dag_id="feaure_engineering", task_ids="feature_eng")
         return feature_df["X_test"]
 
-    @aql.dataframe()
-    def generate_df_values():
-        from sklearn import datasets
-        import pandas as pd
-
-        # load iris dataset
-        iris = datasets.load_iris()
-        # Since this is a bunch, create a dataframe
-        df = pd.DataFrame(iris.data)
-        df.columns = ["sepal_length_cm", "sepal_width_cm", "petal_length_cm", "petal_width_cm"]
-
-        df["target"] = iris.target
-
-        df.dropna(how="all", inplace=True)  # remove any empty lines
-
-        return df
-
-    output_table = Table(
-        name="iris",
-        metadata=Metadata(
-            schema="public",
-            database="curated",
-        ),
-        conn_id="conn_curated",
-    )
-
-    true_values = generate_df_values(output_table=output_table)
-
-    (start >> [true_values, fetch_feature_df_test] >> end)
+    (start >> fetch_feature_df_test >> end)
 
 
 generate_true_values = generate_values()
