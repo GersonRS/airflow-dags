@@ -30,3 +30,4 @@ seaborn
 statsmodels
 sympy
 hdbcli
+sqlalchemy-hana

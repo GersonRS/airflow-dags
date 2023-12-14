@@ -72,6 +72,17 @@ def ingestion_get_sap_hana_from_datalake_dag():
         cursor.close()
         conn.close()
 
+    @task
+    def get_data_sap_hana_with_sqlalchemi():
+        from sqlalchemy import create_engine, select
+
+        engine = create_engine("hana://SYNAPSE_READ:$Lc@2020!Syn@ps322@10.158.2.40:30015")
+        stmt = select("mad")
+        print(stmt)
+        with engine.connect() as conn:
+            for row in conn.execute(stmt):
+                print(row)
+
     # save_data_to_other_s3 = aql.export_file(
     #     task_id="save_data_to_s3",
     #     input_data=extracted_df,
@@ -84,7 +95,7 @@ def ingestion_get_sap_hana_from_datalake_dag():
     connection = create_connection_sap_hana()
     get_data = get_data_sap_hana(connection)
 
-    start >> get_data >> end
+    start >> [get_data, get_data_sap_hana_with_sqlalchemi] >> end
 
 
 ingestion_get_sap_hana_from_datalake_dag()
