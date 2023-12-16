@@ -1,4 +1,3 @@
-apache-airflow[amazon,async,celery,cncf.kubernetes,docker,grpc,hashicorp,http,pandas]
 airflow-provider-mlflow
 airflow-provider-great-expectations
 apache-airflow-providers-apache-kafka
@@ -31,3 +30,4 @@ statsmodels
 sympy
 hdbcli
 sqlalchemy-hana
+pyspark
