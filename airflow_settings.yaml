@@ -7,15 +7,15 @@
 
 airflow:
   connections:
-    - conn_id:
-      conn_type:
-      conn_host:
-      conn_schema:
-      conn_login:
-      conn_password:
-      conn_port:
-      conn_extra:
-        example_extra_field: example-value
+    - conn_id: conn_postgres
+      conn_type: postgres
+      conn_host: database
+      conn_schema: database
+      conn_login: postgres
+      conn_password: postgres
+      conn_port: 5432
+      # conn_extra:
+      #   example_extra_field: example-value
   pools:
     - pool_name:
       pool_slot:
