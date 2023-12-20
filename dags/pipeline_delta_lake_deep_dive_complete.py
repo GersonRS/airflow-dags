@@ -74,7 +74,7 @@ dag = DAG(
 
 # [START set_tasks]
 
-start = DummyOperator(task_id='start', dag=dag)
+start = DummyOperator(task_id="start", dag=dag)
 
 # verify if new data has arrived on processing bucket
 # connecting to minio to check (sensor)
@@ -105,7 +105,7 @@ ingestion_sensor = SparkKubernetesSensor(
     attach_log=True,
 )
 
-maybe_great_expectation = DummyOperator(task_id='maybe_great_expectation', dag=dag)
+maybe_great_expectation = DummyOperator(task_id="maybe_great_expectation", dag=dag)
 
 tranform = SparkKubernetesOperator(
     task_id="task_spark_transform_and_enrichment_from_bronze_to_silver",
@@ -143,7 +143,7 @@ delivery_sensor = SparkKubernetesSensor(
     attach_log=True,
 )
 
-end = DummyOperator(task_id='end', dag=dag)
+end = DummyOperator(task_id="end", dag=dag)
 # [END set_tasks]
 # [START task_sequence]
 (

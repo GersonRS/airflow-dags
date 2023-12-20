@@ -35,7 +35,15 @@ XCOM_BUCKET = "localxcom"
     # schedule=[Dataset("astro://postgres@?table=new_features&schema=public&database=feature_store")],
     schedule_interval="@once",
     default_view="graph",
-    tags=["development", "s3", "minio", "python", "postgres", "ML", "feature engineering"],
+    tags=[
+        "development",
+        "s3",
+        "minio",
+        "python",
+        "postgres",
+        "ML",
+        "feature engineering",
+    ],
 )
 def feature_eng():
     start = EmptyOperator(task_id="start")
@@ -64,7 +72,9 @@ def feature_eng():
             return existing_experiments_information
 
         @task.branch
-        def check_if_experiment_exists(experiment_name, existing_experiments_information):
+        def check_if_experiment_exists(
+            experiment_name, existing_experiments_information
+        ):
             "Check if the specified experiment already exists."
 
             if existing_experiments_information:
@@ -179,7 +189,9 @@ def feature_eng():
 
         logging.info(pd.concat([X, y], axis=1).head())
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
         X_train_df = pd.DataFrame(X_train, columns=X.columns)
         X_train_df.index = X_train.index

@@ -46,7 +46,9 @@ def train():
     def fetch_feature_df(**context):
         "Fetch the feature dataframe from the feature engineering DAG."
         feature_df = context["ti"].xcom_pull(
-            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
+            dag_id="feaure_engineering",
+            task_ids="feature_eng",
+            include_prior_dates=True,
         )
         return feature_df
 
@@ -69,7 +71,9 @@ def train():
     # Train a model
     # @task(executor_config=etl_config)
     @aql.dataframe()
-    def train_model(feature_df: Dict[str, DataFrame], experiment_id: str, run_name: str):
+    def train_model(
+        feature_df: Dict[str, DataFrame], experiment_id: str, run_name: str
+    ):
         "Train a model and log it to MLFlow."
 
         import mlflow

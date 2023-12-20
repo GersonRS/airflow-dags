@@ -67,14 +67,18 @@ def predict():
     @task
     def fetch_feature_df_test(**context):
         feature_df = context["ti"].xcom_pull(
-            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
+            dag_id="feaure_engineering",
+            task_ids="feature_eng",
+            include_prior_dates=True,
         )
         return feature_df["X_test"]
 
     @task
     def fetch_target_test(**context):
         feature_df = context["ti"].xcom_pull(
-            dag_id="feaure_engineering", task_ids="feature_eng", include_prior_dates=True
+            dag_id="feaure_engineering",
+            task_ids="feature_eng",
+            include_prior_dates=True,
         )
         return feature_df["y_test"]
 
@@ -88,7 +92,9 @@ def predict():
     @task
     def fetch_experiment_id(**context):
         experiment_id = context["ti"].xcom_pull(
-            dag_id="train_model", task_ids="fetch_experiment_id", include_prior_dates=True
+            dag_id="train_model",
+            task_ids="fetch_experiment_id",
+            include_prior_dates=True,
         )
         return experiment_id
 
@@ -186,16 +192,21 @@ def predict():
         task_id="save_predictions",
         input_data=run_prediction,
         output_file=File(
-            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), conn_id=AWS_CONN_ID
+            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS),
+            conn_id=AWS_CONN_ID,
         ),
         if_exists="replace",
     )
 
     (
         start
-        >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
+        >> add_line_to_file(
+            run_id=fetched_model_run_id, experiment_id=fetched_experiment_id
+        )
         >> [
-            metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
+            metrics(
+                y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
+            ),
             plot_predictions(
                 y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
             ),

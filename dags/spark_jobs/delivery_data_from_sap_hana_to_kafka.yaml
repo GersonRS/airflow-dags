@@ -1,0 +1,67 @@
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: delivery-data-from-sap-hana-to-kafka
+  namespace: processing
+spec:
+  type: Python
+  mode: cluster
+  image: "apache/spark-py:v3.4.0"
+  imagePullPolicy: IfNotPresent
+  mainApplicationFile: "s3a://scripts/raw/delivery_data_from_sap_hana_to_kafka_py_spark.py"
+  sparkVersion: "3.4.0"
+  deps:
+    packages:
+      - com.sap.cloud.db.jdbc:ngdbc:2.19.15
+      - com.oracle.database.jdbc:ojdbc8:23.3.0.23.09
+      - org.apache.spark:spark-sql-kafka-0-10_2.13:3.4.0
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 1
+    onFailureRetryInterval: 10
+    onSubmissionFailureRetries: 5
+    onSubmissionFailureRetryInterval: 20
+  driver:
+    env:
+      - name: DRIVER
+        value: org.postgresql.Driver
+      - name: URL
+        value: jdbc:sap://10.163.9.4:30041/HAQ
+      - name: DBTABLE
+        value: SAPHANADB.CRCO
+      - name: USER
+        value: SYNAPSE_READ
+      - name: PASSWORD
+        value: Syn@ps322SAP22
+      - name: KAFKA
+        value: broker:29092
+      - name: TOPIC
+        value: topic2
+    cores: 1
+    coreLimit: "1200m"
+    memory: "512m"
+    labels:
+      version: 3.4.0
+    serviceAccount: default
+  executor:
+    env:
+      - name: DRIVER
+        value: org.postgresql.Driver
+      - name: URL
+        value: jdbc:sap://10.163.9.4:30041/HAQ
+      - name: DBTABLE
+        value: SAPHANADB.CRCO
+      - name: USER
+        value: SYNAPSE_READ
+      - name: PASSWORD
+        value: Syn@ps322SAP22
+      - name: KAFKA
+        value: broker:29092
+      - name: TOPIC
+        value: topic2
+    cores: 1
+    instances: 3
+    memory: "512m"
+    labels:
+      version: 3.4.0
+    serviceAccount: default

@@ -20,7 +20,6 @@ def test_dag_tags_and_import() -> None:
 
 
 def test_s3_etl_operator_with_docker(client: Minio, files: List[str]) -> None:
-
     for file in files:
         test = PythonOperator(
             task_id="test", python_callable=read_business_json_data, op_args=(file,)

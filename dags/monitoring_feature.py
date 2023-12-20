@@ -113,7 +113,9 @@ def feature_monitoring():
     #     channel="#integrations",
     # )
 
-    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="retrain")
+    trigger_retrain = TriggerDagRunOperator(
+        task_id="trigger_retrain", trigger_dag_id="retrain"
+    )
 
     cleanup = aql.cleanup()
 

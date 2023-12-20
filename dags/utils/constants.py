@@ -29,7 +29,8 @@ etl_config = {
                 k8s.V1Container(
                     name="base",
                     resources=k8s.V1ResourceRequirements(
-                        limits={"cpu": 1, "memory": "8Gi"}, requests={"cpu": 0.5, "memory": "5Gi"}
+                        limits={"cpu": 1, "memory": "8Gi"},
+                        requests={"cpu": 0.5, "memory": "5Gi"},
                     ),
                 )
             ]
@@ -45,7 +46,8 @@ modeling_config = {
                 k8s.V1Container(
                     name="base",
                     resources=k8s.V1ResourceRequirements(
-                        limits={"cpu": 2, "memory": "8Gi"}, requests={"cpu": 1, "memory": "5Gi"}
+                        limits={"cpu": 2, "memory": "8Gi"},
+                        requests={"cpu": 1, "memory": "5Gi"},
                     ),
                 )
             ]

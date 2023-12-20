@@ -9,7 +9,6 @@ from utils.constants import CURATED_ZONE, PROCESSING_ZONE
 
 
 def read_business_json_data(*file: Tuple[str]) -> str:
-
     client: Minio = Minio(
         os.getenv("S3_ENDPOINT_URL"),
         os.getenv("S3_ACCESS_KEY"),

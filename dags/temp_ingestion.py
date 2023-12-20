@@ -27,7 +27,12 @@ def generate_values():
         iris = datasets.load_iris()
         # Since this is a bunch, create a dataframe
         df = pd.DataFrame(iris.data)
-        df.columns = ["sepal_length_cm", "sepal_width_cm", "petal_length_cm", "petal_width_cm"]
+        df.columns = [
+            "sepal_length_cm",
+            "sepal_width_cm",
+            "petal_length_cm",
+            "petal_width_cm",
+        ]
 
         df["target"] = iris.target
 
