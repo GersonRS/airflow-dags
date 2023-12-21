@@ -3,9 +3,10 @@
 
 Artificially generates feedback on the predictions made by the model in the predict DAG.
 """
+import pandas as pd
 from airflow.decorators import dag
 from astro import sql as aql
-from astro.sql.table import Table, Metadata
+from astro.sql.table import Metadata, Table
 from utils.constants import default_args
 
 
@@ -17,11 +18,10 @@ from utils.constants import default_args
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Generate values"],
 )
-def generate_values():
+def generate_values() -> None:
     @aql.dataframe()
-    def generate_df_values():
+    def generate_df_values() -> pd.DataFrame:
         from sklearn import datasets
-        import pandas as pd
 
         # load iris dataset
         iris = datasets.load_iris()

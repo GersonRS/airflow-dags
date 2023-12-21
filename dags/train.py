@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from airflow import Dataset
 from airflow.decorators import dag, task, task_group
 from airflow.operators.empty import EmptyOperator
@@ -11,7 +13,6 @@ from mlflow_provider.operators.registry import (
 )
 from sklearn.linear_model import LogisticRegression
 from utils.constants import default_args
-from typing import Dict
 
 FILE_PATH = "data.parquet"
 
@@ -38,12 +39,12 @@ TARGET_COLUMN = "target"
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Train"],
 )
-def train():
+def train() -> None:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end", outlets=[Dataset("model_trained")])
 
     @task
-    def fetch_feature_df(**context):
+    def fetch_feature_df(**context: Any) -> DataFrame:
         "Fetch the feature dataframe from the feature engineering DAG."
         feature_df = context["ti"].xcom_pull(
             dag_id="feaure_engineering",
@@ -53,7 +54,7 @@ def train():
         return feature_df
 
     @task
-    def fetch_experiment_id(experiment_name, max_results=1000):
+    def fetch_experiment_id(experiment_name: str, max_results: int = 1000) -> Any:
         "Get the ID of the specified MLFlow experiment."
 
         mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
@@ -73,7 +74,7 @@ def train():
     @aql.dataframe()
     def train_model(
         feature_df: Dict[str, DataFrame], experiment_id: str, run_name: str
-    ):
+    ) -> Any:
         "Train a model and log it to MLFlow."
 
         import mlflow
@@ -104,9 +105,9 @@ def train():
     )
 
     @task_group
-    def register_model():
+    def register_model() -> None:
         @task.branch
-        def check_if_model_already_registered(reg_model_name):
+        def check_if_model_already_registered(reg_model_name: str) -> Any:
             "Get information about existing registered MLFlow models."
 
             mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID, method="GET")
@@ -120,7 +121,7 @@ def train():
                     reg_model_exists = False
                 else:
                     raise ValueError(
-                        f"Error when checking if model is registered: {get_reg_model_response['error_code']}"
+                        f"Error when checking if model is registered: {get_reg_model_response['error_code']}"  # noqa: E501
                     )
             else:
                 reg_model_exists = True
@@ -158,13 +159,14 @@ def train():
             mlflow_conn_id=MLFLOW_CONN_ID,
             task_id="transition_model",
             name=REGISTERED_MODEL_NAME,
-            version="{{ ti.xcom_pull(task_ids='register_model.create_model_version')['model_version']['version'] }}",
+            version="{{ ti.xcom_pull(task_ids='register_model.create_model_version')['model_version']['version'] }}",  # noqa: E501
             stage="Staging",
             archive_existing_versions=True,
         )
 
         (
             check_if_model_already_registered(reg_model_name=REGISTERED_MODEL_NAME)
+            # type: ignore[operator]
             >> [model_already_registered, create_registered_model]
             >> create_model_version
             >> transition_model

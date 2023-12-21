@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict, List
 
 import pandas as pd
 from airflow.decorators import dag, task
@@ -8,8 +9,8 @@ from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from astro import sql as aql
+from astro.sql.table import Metadata, Table
 from utils.constants import default_args
-from astro.sql.table import Table, Metadata
 
 
 @dag(
@@ -22,37 +23,29 @@ from astro.sql.table import Table, Metadata
     render_template_as_native_obj=True,
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Monitoring"],
 )
-def feature_monitoring():
+def feature_monitoring() -> None:
     @aql.transform
-    def get_ref_data(input_table: Table):
+    def get_ref_data(input_table: Table) -> Any:
         return """
         SELECT sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
         FROM {{input_table}}
         """
 
     @aql.transform
-    def get_curr_data(input_table: Table):
+    def get_curr_data(input_table: Table) -> Any:
         return """
         SELECT sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
         FROM {{input_table}}
         """
 
     @aql.dataframe(columns_names_capitalization="lower")
-    def generate_reports(ref_data: pd.DataFrame, curr_data: pd.DataFrame):
+    def generate_reports(
+        ref_data: pd.DataFrame, curr_data: pd.DataFrame
+    ) -> Dict[str, Any]:
+        from evidently.test_preset import DataDriftTestPreset
         from evidently.test_suite import TestSuite
-        from evidently.test_preset import (
-            # NoTargetPerformanceTestPreset,
-            DataDriftTestPreset,
-            # DataStabilityTestPreset
-        )
 
-        suite = TestSuite(
-            tests=[
-                # NoTargetPerformanceTestPreset(),
-                DataDriftTestPreset(),
-                # DataStabilityTestPreset()
-            ]
-        )
+        suite = TestSuite(tests=[DataDriftTestPreset()])
         suite.run(reference_data=ref_data, current_data=curr_data)
 
         return suite.as_dict()
@@ -94,11 +87,12 @@ def feature_monitoring():
     # )
 
     @task.short_circuit
-    def check_drift(metrics: str):
+    def check_drift(metrics: Dict[str, List[Dict[str, str]]]) -> bool:
         status = metrics["tests"][0]["status"]
         logging.info(status)
         if status == "FAIL":
             return True
+        return False
 
     send_retrain_alert = EmptyOperator(task_id="send_retrain_alert")
     # send_retrain_alert = SlackAPIPostOperator(
@@ -121,7 +115,7 @@ def feature_monitoring():
 
     chain(
         reports,
-        check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
+        check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),  # type: ignore[arg-type] # noqa: E501
         trigger_retrain,
         send_retrain_alert,
     )
@@ -129,4 +123,4 @@ def feature_monitoring():
     reports >> [send_report, cleanup]
 
 
-feature_monitoring = feature_monitoring()
+feature_monitoring()

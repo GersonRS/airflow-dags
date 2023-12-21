@@ -1,12 +1,16 @@
 import os
+from typing import Any, Tuple
+
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 from airflow import Dataset
 from airflow.decorators import dag, task
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from mlflow_provider.hooks.client import MLflowClientHook
 from astro import sql as aql
 from astro.files import File
+from matplotlib.figure import Figure
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -14,8 +18,6 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-import matplotlib.pyplot as plt
-import seaborn as sns
 from utils.constants import default_args
 
 # AWS S3 parameters
@@ -28,7 +30,9 @@ TARGET_COLUMN = "target"
 FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
 
 
-def metricas(y_test, y_predict):
+def metricas(
+    y_test: pd.DataFrame, y_predict: pd.DataFrame
+) -> Tuple[float, float, float, float]:
     acuracia = accuracy_score(y_test, y_predict)
     precision = precision_score(y_test, y_predict, average="weighted")
     recall = recall_score(y_test, y_predict, average="weighted")
@@ -36,7 +40,7 @@ def metricas(y_test, y_predict):
     return acuracia, precision, recall, f1
 
 
-def matriz_confusao(y_test, y_predict):
+def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
     matriz_conf = confusion_matrix(y_test.values.ravel(), y_predict)
     fig = plt.figure()
     ax = plt.subplot()
@@ -60,12 +64,12 @@ def matriz_confusao(y_test, y_predict):
     render_template_as_native_obj=True,
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Predict"],
 )
-def predict():
+def predict() -> None:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end", outlets=[Dataset("prediction_data")])
 
     @task
-    def fetch_feature_df_test(**context):
+    def fetch_feature_df_test(**context: Any) -> pd.DataFrame:
         feature_df = context["ti"].xcom_pull(
             dag_id="feaure_engineering",
             task_ids="feature_eng",
@@ -74,7 +78,7 @@ def predict():
         return feature_df["X_test"]
 
     @task
-    def fetch_target_test(**context):
+    def fetch_target_test(**context: Any) -> pd.DataFrame:
         feature_df = context["ti"].xcom_pull(
             dag_id="feaure_engineering",
             task_ids="feature_eng",
@@ -83,14 +87,14 @@ def predict():
         return feature_df["y_test"]
 
     @task
-    def fetch_model_run_id(**context):
+    def fetch_model_run_id(**context: Any) -> str:
         model_run_id = context["ti"].xcom_pull(
             dag_id="train_model", task_ids="train_model", include_prior_dates=True
         )
         return model_run_id
 
     @task
-    def fetch_experiment_id(**context):
+    def fetch_experiment_id(**context: Any) -> str:
         experiment_id = context["ti"].xcom_pull(
             dag_id="train_model",
             task_ids="fetch_experiment_id",
@@ -103,7 +107,7 @@ def predict():
     fetched_experiment_id = fetch_experiment_id()
 
     @task
-    def add_line_to_file(run_id: str, experiment_id: str):
+    def add_line_to_file(run_id: str, experiment_id: str) -> None:
         s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
         file_contents = s3_hook.read_key(
             key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
@@ -119,7 +123,7 @@ def predict():
             )
 
     @aql.dataframe()
-    def prediction(data, run_id):
+    def prediction(data: pd.DataFrame, run_id: str) -> pd.DataFrame:
         import mlflow
 
         logged_model = f"runs:/{run_id}/model"
@@ -130,7 +134,7 @@ def predict():
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
     @aql.dataframe()
-    def metrics(y_test, y_pred, run_id):
+    def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
         import mlflow
 
         with mlflow.start_run(run_id=run_id):
@@ -153,9 +157,11 @@ def predict():
             mlflow.log_metric("F1-Score", f1)
 
     @task
-    def plot_predictions(y_test, y_pred, run_id):
-        import mlflow
+    def plot_predictions(
+        y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str
+    ) -> None:
         import matplotlib.pyplot as plt
+        import mlflow
 
         # Create a figure and axes
         fig, ax = plt.subplots(figsize=(10, 6))

@@ -1,5 +1,8 @@
+import logging
 import os
+from typing import Any, Dict, List
 
+import pandas as pd
 from airflow import Dataset
 from airflow.decorators import dag, task, task_group
 from airflow.operators.empty import EmptyOperator
@@ -7,10 +10,8 @@ from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
 from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from astro.files import File
+from astro.sql.table import Metadata, Table
 from mlflow_provider.hooks.client import MLflowClientHook
-from astro.sql.table import Table, Metadata
-import pandas as pd
-import logging
 from utils.constants import default_args
 
 FILE_PATH = "data.parquet"
@@ -45,7 +46,7 @@ XCOM_BUCKET = "localxcom"
         "feature engineering",
     ],
 )
-def feature_eng():
+def feature_eng() -> None:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(
         task_id="end",
@@ -58,9 +59,9 @@ def feature_eng():
     ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET, XCOM_BUCKET])
 
     @task_group
-    def prepare_mlflow_experiment():
+    def prepare_mlflow_experiment() -> None:
         @task
-        def list_existing_experiments(max_results=1000):
+        def list_existing_experiments(max_results: int = 1000) -> Any:
             "Get information about existing MLFlow experiments."
 
             mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
@@ -73,8 +74,9 @@ def feature_eng():
 
         @task.branch
         def check_if_experiment_exists(
-            experiment_name, existing_experiments_information
-        ):
+            experiment_name: str,
+            existing_experiments_information: Dict[str, List[Dict[str, str]]],
+        ) -> Any:
             "Check if the specified experiment already exists."
 
             if existing_experiments_information:
@@ -90,7 +92,7 @@ def feature_eng():
                 return "prepare_mlflow_experiment.create_experiment"
 
         @task
-        def create_experiment(experiment_name, artifact_bucket):
+        def create_experiment(experiment_name: str, artifact_bucket: str) -> Any:
             """Create a new MLFlow experiment with a specified name.
             Save artifacts to the specified S3 bucket."""
 
@@ -117,7 +119,9 @@ def feature_eng():
         experiment_already_exists = EmptyOperator(task_id="experiment_exists")
 
         @task(trigger_rule="none_failed")
-        def get_current_experiment_id(experiment_name, max_results=1000):
+        def get_current_experiment_id(
+            experiment_name: str, max_results: int = 1000
+        ) -> Any:
             "Get the ID of the specified MLFlow experiment."
 
             mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
@@ -143,7 +147,7 @@ def feature_eng():
                 existing_experiments_information=list_existing_experiments(
                     max_results=MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS
                 ),
-            )
+            )  # type: ignore[operator]
             >> [
                 experiment_already_exists,
                 create_experiment(
@@ -167,11 +171,13 @@ def feature_eng():
         """
 
     @aql.dataframe(multiple_outputs=True)
-    def feature_eng(df: pd.DataFrame, experiment_id: str, name: str):
+    def feature_eng(
+        df: pd.DataFrame, experiment_id: str, name: str
+    ) -> dict[str, pd.DataFrame]:
         import mlflow
         import pandas as pd
-        from sklearn.preprocessing import StandardScaler
         from sklearn.model_selection import train_test_split
+        from sklearn.preprocessing import StandardScaler
 
         mlflow.sklearn.autolog()
 
@@ -238,7 +244,7 @@ def feature_eng():
         >> prepare_mlflow_experiment()
         >> feature_eng(
             df=extracted_df,
-            experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",
+            experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",  # noqa: E501
             name="Scaler_{{ ts_nodash }}",
         )
         >> end

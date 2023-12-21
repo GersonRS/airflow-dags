@@ -1,18 +1,18 @@
 """Test the validity of all DAGs. **USED BY DEV PARSE COMMAND DO NOT EDIT**"""
-from contextlib import contextmanager
 import logging
 import os
+from contextlib import contextmanager
 
 import pytest
-
-from airflow.models import DagBag, Variable, Connection
 from airflow.hooks.base import BaseHook
+from airflow.models import Connection, DagBag, Variable
 from airflow.utils.db import initdb
 
 # init airflow database
 initdb()
 
-# The following code patches errors caused by missing OS Variables, Airflow Connections, and Airflow Variables
+# The following code patches errors caused by missing OS Variables, Airflow Connections,
+# and Airflow Variables
 
 
 # =========== MONKEYPATCH BaseHook.get_connection() ===========
@@ -47,7 +47,8 @@ def os_getenv_monkeypatch(key: str, *args, **kwargs):
         return None
     if default:
         return default  # otherwise return whatever default has been passed
-    return f"MOCKED_{key.upper()}_VALUE"  # if absolutely nothing has been passed - return the mocked value
+    return f"MOCKED_{key.upper()}_VALUE"
+    # if absolutely nothing has been passed - return the mocked value
 
 
 os.getenv = os_getenv_monkeypatch

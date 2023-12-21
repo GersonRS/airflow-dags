@@ -33,7 +33,6 @@ from datetime import timedelta
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
-from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor, S3KeysUnchangedSensor
 
 # Operators; we need this to operate!
 from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
@@ -99,7 +98,7 @@ ingestion = SparkKubernetesOperator(
 ingestion_sensor = SparkKubernetesSensor(
     task_id="task_spark_ingestion_file_local_to_bronze_table_monitor",
     namespace="processing",
-    application_name="{{task_instance.xcom_pull(task_ids='task_spark_ingestion_file_local_to_bronze_table')['metadata']['name']}}",
+    application_name="{{task_instance.xcom_pull(task_ids='task_spark_ingestion_file_local_to_bronze_table')['metadata']['name']}}",  # noqa: E501
     kubernetes_conn_id="kubernetes_default",
     dag=dag,
     attach_log=True,
@@ -119,7 +118,7 @@ tranform = SparkKubernetesOperator(
 transform_sensor = SparkKubernetesSensor(
     task_id="task_spark_transform_and_enrichment_from_bronze_to_silver_monitor",
     namespace="processing",
-    application_name="{{task_instance.xcom_pull(task_ids='task_spark_transform_and_enrichment_from_bronze_to_silver')['metadata']['name']}}",
+    application_name="{{task_instance.xcom_pull(task_ids='task_spark_transform_and_enrichment_from_bronze_to_silver')['metadata']['name']}}",  # noqa: E501
     kubernetes_conn_id="kubernetes_default",
     dag=dag,
     attach_log=True,
@@ -137,7 +136,7 @@ delivery = SparkKubernetesOperator(
 delivery_sensor = SparkKubernetesSensor(
     task_id="task_spark_delivery_data_from_silver_to_gold_monitor",
     namespace="processing",
-    application_name="{{task_instance.xcom_pull(task_ids='task_spark_delivery_data_from_silver_to_gold')['metadata']['name']}}",
+    application_name="{{task_instance.xcom_pull(task_ids='task_spark_delivery_data_from_silver_to_gold')['metadata']['name']}}",  # noqa: E501
     kubernetes_conn_id="kubernetes_default",
     dag=dag,
     attach_log=True,

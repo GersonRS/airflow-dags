@@ -42,7 +42,7 @@ if __name__ == "__main__":
         .withColumn("schema", lit(df.schema.json()))
     )
 
-    log(logging.INFO, df_processed.printSchema())
+    df_processed.printSchema()
 
     log(logging.INFO, df_processed.count())
 

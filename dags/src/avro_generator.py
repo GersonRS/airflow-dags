@@ -1,8 +1,11 @@
 import json
+from typing import Any, Dict, List
+
+from pyspark.sql.dataframe import DataFrame
 
 
-def generate_avro_schema_from_json(json_data):
-    def avro_type_mapping(value):
+def generate_avro_schema_from_json(json_data: Dict[str, str]) -> Dict[str, Any]:
+    def avro_type_mapping(value: str) -> List[str]:
         if value is None:
             return ["null", "string"]
         elif isinstance(value, bool):
@@ -27,13 +30,19 @@ def generate_avro_schema_from_json(json_data):
     return avro_schema
 
 
-def get_avro_schema(spark_df, schema_type: str, name: str, namespace: str):
+def get_avro_schema(
+    spark_df: DataFrame, schema_type: str, name: str, namespace: str
+) -> str:
     """
     Returns the corresponding avro schema for the passed in spark dataframe.
     The type mapping covers most commonly used types, every field is made to be nullable.
     """
 
-    schema_base = {"type": schema_type, "namespace": name, "name": namespace}
+    schema_base = {
+        "type": schema_type,
+        "namespace": name,
+        "name": namespace,
+    }  # type: Dict[str, Any]
 
     # Keys are Spark Types, Values are Avro Types
     avro_mapping = {
