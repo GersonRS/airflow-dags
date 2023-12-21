@@ -16,8 +16,12 @@ from datetime import timedelta
 from airflow.decorators import dag
 
 # Operadores; precisamos disso para funcionar!
-from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
-from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
+from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
+    SparkKubernetesOperator,
+)
+from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import (
+    SparkKubernetesSensor,
+)
 from airflow.utils.dates import days_ago
 
 # [FIM import_module]
