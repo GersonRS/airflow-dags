@@ -16,12 +16,8 @@ from datetime import timedelta
 from airflow.decorators import dag
 
 # Operadores; precisamos disso para funcionar!
-from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
-    SparkKubernetesOperator,
-)
-from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import (
-    SparkKubernetesSensor,
-)
+from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
+from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
 from airflow.utils.dates import days_ago
 
 # [FIM import_module]
@@ -69,7 +65,7 @@ def delivery_data_from_sap_hana_to_kafka_dag() -> None:
     submit = SparkKubernetesOperator(
         task_id="delivery_data_from_sap_hana_to_kafka_submit",
         namespace="processing",
-        application_file="spark_jobs/delivery_data_from_silver_to_gold.yaml",
+        application_file="spark_jobs/delivery_data_from_sap_hana_to_kafka.yaml",
         kubernetes_conn_id="conn_kubernetes",
         do_xcom_push=True,
     )
