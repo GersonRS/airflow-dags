@@ -171,9 +171,7 @@ def feature_eng() -> None:
         """
 
     @aql.dataframe(multiple_outputs=True)
-    def feature_eng(
-        df: pd.DataFrame, experiment_id: str, name: str
-    ) -> dict[str, pd.DataFrame]:
+    def feature_eng(df: pd.DataFrame, experiment_id: str, name: str) -> Any:
         import mlflow
         import pandas as pd
         from sklearn.model_selection import train_test_split
