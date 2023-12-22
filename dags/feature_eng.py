@@ -119,9 +119,7 @@ def feature_eng() -> None:
         experiment_already_exists = EmptyOperator(task_id="experiment_exists")
 
         @task(trigger_rule="none_failed")
-        def get_current_experiment_id(
-            experiment_name: str, max_results: int = 1000
-        ) -> Any:
+        def get_current_experiment_id(experiment_name: str, max_results: int = 1000) -> Any:
             "Get the ID of the specified MLFlow experiment."
 
             mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
@@ -171,9 +169,7 @@ def feature_eng() -> None:
         """
 
     @aql.dataframe(multiple_outputs=True)
-    def feature_eng(
-        df: pd.DataFrame, experiment_id: str, name: str
-    ) -> dict[str, pd.DataFrame]:
+    def feature_eng(df: pd.DataFrame, experiment_id: str, name: str) -> Any:
         import mlflow
         import pandas as pd
         from sklearn.model_selection import train_test_split
@@ -195,9 +191,7 @@ def feature_eng() -> None:
 
         logging.info(pd.concat([X, y], axis=1).head())
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         X_train_df = pd.DataFrame(X_train, columns=X.columns)
         X_train_df.index = X_train.index
