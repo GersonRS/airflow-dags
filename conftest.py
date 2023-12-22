@@ -1,6 +1,7 @@
 import io
 import os
-import shutil
+
+# import shutil
 from typing import Any, Dict, Generator, List
 
 import pandas as pd
@@ -42,10 +43,10 @@ def reset_db() -> Generator[Any, Any, Any]:
     yield
 
     # Cleanup temp files generated during tests
-    os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.cfg"))
-    os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.db"))
-    os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "webserver_config.py"))
-    shutil.rmtree(os.path.join(os.environ["AIRFLOW_HOME"], "logs"))
+    # os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.cfg"))
+    # os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.db"))
+    # os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "webserver_config.py"))
+    # shutil.rmtree(os.path.join(os.environ["AIRFLOW_HOME"], "logs"))
 
 
 @pytest.fixture()
