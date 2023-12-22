@@ -42,16 +42,14 @@ def reset_db() -> Generator[Any, Any, Any]:
     yield
 
     # Cleanup temp files generated during tests
-    os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.cfg"))
-    os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.db"))
-    os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "webserver_config.py"))
-    shutil.rmtree(os.path.join(os.environ["AIRFLOW_HOME"], "logs"))
+    # os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.cfg"))
+    # os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "unittests.db"))
+    # os.remove(os.path.join(os.environ["AIRFLOW_HOME"], "webserver_config.py"))
+    # shutil.rmtree(os.path.join(os.environ["AIRFLOW_HOME"], "logs"))
 
 
 @pytest.fixture()
-def client(
-    minio: Container, files: List[str], data_json: List[Dict[str, Any]]
-) -> Minio:
+def client(minio: Container, files: List[str], data_json: List[Dict[str, Any]]) -> Minio:
     os.environ["S3_ENDPOINT_URL"] = f"{minio.ips.primary}:{minio.ports['9000/tcp'][0]}"
     os.environ["S3_ACCESS_KEY"] = ACCESS_KEY
     os.environ["S3_SECRET_KEY"] = SECRET_KEY
