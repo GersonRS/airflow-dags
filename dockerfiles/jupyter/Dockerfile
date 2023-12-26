@@ -9,6 +9,21 @@ USER root
 # Add permanent apt-get installs and other root commands here
 # e.g., RUN apt-get install --yes --no-install-recommends npm nodejs
 
+RUN apt-get update --yes && \
+    # - apt-get upgrade is run to patch known vulnerabilities in apt-get packages as
+    #   the ubuntu base image is rebuilt too seldom sometimes (less than once a month)
+    apt-get upgrade --yes && \
+    apt-get install --yes --no-install-recommends \
+    # - bzip2 is necessary to extract the micromamba executable.
+    bzip2 \
+    ca-certificates \
+    locales \
+    sudo \
+    tini \
+    wget \
+    git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # add jar files
 # ADD https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.1/postgresql-42.7.1.jar $SPARK_HOME/jars/postgresql-42.7.1.jar
 # RUN chmod 644 $SPARK_HOME/jars/postgresql-42.7.1.jar

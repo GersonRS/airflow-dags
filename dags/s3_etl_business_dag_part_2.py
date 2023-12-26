@@ -6,12 +6,8 @@ from airflow import XComArg
 # [START import_module]
 from airflow.models import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.operators.s3 import (
-    S3DeleteObjectsOperator,
-    S3ListOperator,
-)
+from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator, S3ListOperator
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
-
 from src.s3_etl_business import read_business_json_data
 
 # [START env_variables]

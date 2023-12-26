@@ -1,7 +1,4 @@
 # import libraries
-import logging
-import os
-from logging import log
 
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
@@ -17,18 +14,20 @@ if __name__ == "__main__":
     )
 
     # show configured parameters
-    log(logging.INFO, SparkConf().getAll())
+    print(SparkConf().getAll())
 
     # set log level
     spark.sparkContext.setLogLevel("INFO")
 
     df = (
         spark.read.format("jdbc")
-        .option("driver", os.getenv("DRIVER"))
-        .option("url", os.getenv("URL"))
-        .option("dbtable", os.getenv("DBTABLE"))
-        .option("user", os.getenv("USER"))
-        .option("password", os.getenv("PASSWORD"))
+        .option("url", "jdbc:sap://10.163.9.4:30041/HAQ")
+        .option("dbtable", "SAPHANADB.CRCO")
+        .option("user", "SYNAPSE_READ")
+        .option("password", "Syn@ps322SAP22")
+        .option("loginTimeout", 60)
+        .option("driver", "com.sap.db.jdbc.Driver")
+        .option("fetchSize", "10000")
         .load()
     )
 
@@ -44,14 +43,14 @@ if __name__ == "__main__":
 
     df_processed.printSchema()
 
-    log(logging.INFO, df_processed.count())
+    print(df_processed.count())
 
     (
         df_processed.select(to_json(struct("*")).alias("value"))
         .selectExpr("CAST(value AS STRING)")
         .write.format("kafka")
-        .option("kafka.bootstrap.servers", os.getenv("KAFKA"))
-        .option("topic", os.getenv("TOPIC"))
+        .option("kafka.bootstrap.servers", "20.84.11.171:9094")
+        .option("topic", "topic-test")
         .save()
     )
 
