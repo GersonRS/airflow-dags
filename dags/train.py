@@ -1,17 +1,20 @@
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 
 from airflow import Dataset
-from airflow.decorators import dag, task, task_group
+from airflow.decorators import dag
+from airflow.decorators import task
+from airflow.decorators import task_group
 from airflow.operators.empty import EmptyOperator
 from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from mlflow_provider.hooks.client import MLflowClientHook
-from mlflow_provider.operators.registry import (
-    CreateModelVersionOperator,
-    CreateRegisteredModelOperator,
-    TransitionModelVersionStageOperator,
-)
+from mlflow_provider.operators.registry import CreateModelVersionOperator
+from mlflow_provider.operators.registry import CreateRegisteredModelOperator
+from mlflow_provider.operators.registry import TransitionModelVersionStageOperator
 from sklearn.linear_model import LogisticRegression
+
 from utils.constants import default_args
 
 FILE_PATH = "data.parquet"
@@ -72,9 +75,7 @@ def train() -> None:
     # Train a model
     # @task(executor_config=etl_config)
     @aql.dataframe()
-    def train_model(
-        feature_df: Dict[str, DataFrame], experiment_id: str, run_name: str
-    ) -> Any:
+    def train_model(feature_df: dict[str, DataFrame], experiment_id: str, run_name: str) -> Any:
         "Train a model and log it to MLFlow."
 
         import mlflow
@@ -166,7 +167,6 @@ def train() -> None:
 
         (
             check_if_model_already_registered(reg_model_name=REGISTERED_MODEL_NAME)
-            # type: ignore[operator]
             >> [model_already_registered, create_registered_model]
             >> create_model_version
             >> transition_model

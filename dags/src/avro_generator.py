@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from pyspark.sql.dataframe import DataFrame
 
 
-def generate_avro_schema_from_json(json_data: Dict[str, str]) -> Dict[str, Any]:
-    def avro_type_mapping(value: str) -> List[str]:
+def generate_avro_schema_from_json(json_data: dict[str, str]) -> dict[str, Any]:
+    def avro_type_mapping(value: str) -> list[str]:
         if value is None:
             return ["null", "string"]
         elif isinstance(value, bool):
@@ -23,26 +25,23 @@ def generate_avro_schema_from_json(json_data: Dict[str, str]) -> Dict[str, Any]:
         "type": "record",
         "name": "Default_schema",
         "fields": [
-            {"name": key, "type": avro_type_mapping(value)}
-            for key, value in json_data.items()
+            {"name": key, "type": avro_type_mapping(value)} for key, value in json_data.items()
         ],
     }
     return avro_schema
 
 
-def get_avro_schema(
-    spark_df: DataFrame, schema_type: str, name: str, namespace: str
-) -> str:
+def get_avro_schema(spark_df: DataFrame, schema_type: str, name: str, namespace: str) -> str:
     """
     Returns the corresponding avro schema for the passed in spark dataframe.
     The type mapping covers most commonly used types, every field is made to be nullable.
     """
 
-    schema_base = {
+    schema_base: dict[str, Any] = {
         "type": schema_type,
         "namespace": name,
         "name": namespace,
-    }  # type: Dict[str, Any]
+    }
 
     # Keys are Spark Types, Values are Avro Types
     avro_mapping = {
@@ -67,9 +66,7 @@ def get_avro_schema(
 
     for field in spark_df.schema.fields:
         if str(field.dataType) in avro_mapping:
-            fields.append(
-                {"name": field.name, "type": avro_mapping[str(field.dataType)]}
-            )
+            fields.append({"name": field.name, "type": avro_mapping[str(field.dataType)]})
         else:
             fields.append({"name": field.name, "type": str(field.dataType)})
 

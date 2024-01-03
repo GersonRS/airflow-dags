@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
-from airflow.decorators import dag, task
+from airflow.decorators import dag
+from airflow.decorators import task
 from airflow.models.baseoperator import chain
-
-# from airflow.providers.slack.operators.slack import SlackAPIPostOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from astro import sql as aql
-from astro.sql.table import Metadata, Table
+from astro.sql.table import Metadata
+from astro.sql.table import Table
+
 from utils.constants import default_args
+
+# from airflow.providers.slack.operators.slack import SlackAPIPostOperator
 
 
 @dag(
@@ -39,9 +44,7 @@ def feature_monitoring() -> None:
         """
 
     @aql.dataframe(columns_names_capitalization="lower")
-    def generate_reports(
-        ref_data: pd.DataFrame, curr_data: pd.DataFrame
-    ) -> Dict[str, Any]:
+    def generate_reports(ref_data: pd.DataFrame, curr_data: pd.DataFrame) -> dict[str, Any]:
         from evidently.test_preset import DataDriftTestPreset
         from evidently.test_suite import TestSuite
 
@@ -87,7 +90,7 @@ def feature_monitoring() -> None:
     # )
 
     @task.short_circuit
-    def check_drift(metrics: Dict[str, List[Dict[str, str]]]) -> bool:
+    def check_drift(metrics: dict[str, list[dict[str, str]]]) -> bool:
         status = metrics["tests"][0]["status"]
         logging.info(status)
         if status == "FAIL":
@@ -107,15 +110,13 @@ def feature_monitoring() -> None:
     #     channel="#integrations",
     # )
 
-    trigger_retrain = TriggerDagRunOperator(
-        task_id="trigger_retrain", trigger_dag_id="retrain"
-    )
+    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="retrain")
 
     cleanup = aql.cleanup()
 
     chain(
         reports,
-        check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),  # type: ignore[arg-type] # noqa: E501
+        check_drift(metrics="{{ ti.xcom_pull(task_ids='generate_reports') }}"),
         trigger_retrain,
         send_retrain_alert,
     )

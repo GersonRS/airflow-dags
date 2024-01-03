@@ -1,13 +1,13 @@
 """Basic Airflow unit tests, by calling operator.execute()."""
-
-from typing import List
+from __future__ import annotations
 
 import pandas as pd
 from airflow.models import DagBag
 from airflow.operators.python import PythonOperator
+from minio import Minio
+
 from dags.src.s3_etl_business import read_business_json_data
 from dags.utils.constants import CURATED_ZONE
-from minio import Minio
 
 
 def test_dag_tags_and_import() -> None:
@@ -19,7 +19,7 @@ def test_dag_tags_and_import() -> None:
         assert dag.tags, f"{dag_id} in {dag.full_filepath} has no tags"
 
 
-def test_s3_etl_operator_with_docker(client: Minio, files: List[str]) -> None:
+def test_s3_etl_operator_with_docker(client: Minio, files: list[str]) -> None:
     for file in files:
         test = PythonOperator(
             task_id="test", python_callable=read_business_json_data, op_args=(file,)
@@ -32,6 +32,4 @@ def test_s3_etl_operator_with_docker(client: Minio, files: List[str]) -> None:
 
         df_curated = pd.read_csv(obj_curated)
 
-        assert "title" in list(df_curated.columns) and "body" in list(
-            df_curated.columns
-        )
+        assert "title" in list(df_curated.columns) and "body" in list(df_curated.columns)

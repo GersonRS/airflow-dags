@@ -38,6 +38,7 @@ setuptools = "^69.0.2"
 wheel = "^0.42.0"
 evidently = "^0.4.12"
 poetry = "^1.7.1"
+pre-commit = "^3.6.0"
 
 [tool.poetry.group.dev.dependencies]
 black = {extras = ["jupyter"], version = "^23.12.0"}
@@ -52,3 +53,20 @@ pytest-mock = "^3.12.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # The following are specific to Black, you probably don't want those.
+  tests/ignore
+  | profiling
+  | plugins
+  | data
+  | .astro
+  | .github
+  | htmlcov
+)/
+'''

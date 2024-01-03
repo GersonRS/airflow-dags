@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import io
 import os
-
-# import shutil
-from typing import Any, Dict, Generator, List
+from typing import Any
+from typing import Generator
 
 import pandas as pd
 import pytest
 from minio import Minio
-from pytest_docker_tools import container, fetch
+from pytest_docker_tools import container
+from pytest_docker_tools import fetch
 from pytest_docker_tools.wrappers import Container
 
-from dags.utils.constants import CURATED_ZONE, PROCESSING_ZONE
+from dags.utils.constants import CURATED_ZONE
+from dags.utils.constants import PROCESSING_ZONE
+
+# import shutil
 
 ACCESS_KEY = "minio"
 SECRET_KEY = "minio123"
@@ -50,9 +55,7 @@ def reset_db() -> Generator[Any, Any, Any]:
 
 
 @pytest.fixture()
-def client(
-    minio: Container, files: List[str], data_json: List[Dict[str, Any]]
-) -> Minio:
+def client(minio: Container, files: list[str], data_json: list[dict[str, Any]]) -> Minio:
     os.environ["S3_ENDPOINT_URL"] = f"{minio.ips.primary}:{minio.ports['9000/tcp'][0]}"
     os.environ["S3_ACCESS_KEY"] = ACCESS_KEY
     os.environ["S3_SECRET_KEY"] = SECRET_KEY
@@ -85,7 +88,7 @@ def client(
 
 
 @pytest.fixture()
-def data_json() -> List[Dict[str, Any]]:
+def data_json() -> list[dict[str, Any]]:
     return [
         {
             "id": 1534,
@@ -103,5 +106,5 @@ def data_json() -> List[Dict[str, Any]]:
 
 
 @pytest.fixture()
-def files() -> List[str]:
+def files() -> list[str]:
     return ["exemple.json"]

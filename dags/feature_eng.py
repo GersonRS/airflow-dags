@@ -1,17 +1,23 @@
+from __future__ import annotations
+
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 from airflow import Dataset
-from airflow.decorators import dag, task, task_group
+from airflow.decorators import dag
+from airflow.decorators import task
+from airflow.decorators import task_group
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
 from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from astro.files import File
-from astro.sql.table import Metadata, Table
+from astro.sql.table import Metadata
+from astro.sql.table import Table
 from mlflow_provider.hooks.client import MLflowClientHook
+
 from utils.constants import default_args
 
 FILE_PATH = "data.parquet"
@@ -75,7 +81,7 @@ def feature_eng() -> None:
         @task.branch
         def check_if_experiment_exists(
             experiment_name: str,
-            existing_experiments_information: Dict[str, List[Dict[str, str]]],
+            existing_experiments_information: dict[str, list[dict[str, str]]],
         ) -> Any:
             "Check if the specified experiment already exists."
 
@@ -119,9 +125,7 @@ def feature_eng() -> None:
         experiment_already_exists = EmptyOperator(task_id="experiment_exists")
 
         @task(trigger_rule="none_failed")
-        def get_current_experiment_id(
-            experiment_name: str, max_results: int = 1000
-        ) -> Any:
+        def get_current_experiment_id(experiment_name: str, max_results: int = 1000) -> Any:
             "Get the ID of the specified MLFlow experiment."
 
             mlflow_hook = MLflowClientHook(mlflow_conn_id=MLFLOW_CONN_ID)
@@ -147,7 +151,7 @@ def feature_eng() -> None:
                 existing_experiments_information=list_existing_experiments(
                     max_results=MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS
                 ),
-            )  # type: ignore[operator]
+            )
             >> [
                 experiment_already_exists,
                 create_experiment(
@@ -193,9 +197,7 @@ def feature_eng() -> None:
 
         logging.info(pd.concat([X, y], axis=1).head())
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         X_train_df = pd.DataFrame(X_train, columns=X.columns)
         X_train_df.index = X_train.index

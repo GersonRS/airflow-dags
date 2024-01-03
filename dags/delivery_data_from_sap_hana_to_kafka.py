@@ -9,16 +9,22 @@ A primeira tarefa é enviar sparkApplication no cluster Kubernetes.
 E a segunda tarefa é verificar o estado final do sparkApplication que enviou
 no primeiro estado.
 """
+from __future__ import annotations
+
 from datetime import timedelta
+
+from airflow.decorators import dag
+from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
+    SparkKubernetesOperator,
+)
+from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import (
+    SparkKubernetesSensor,
+)
+from airflow.utils.dates import days_ago
 
 # [INICIO import_module]
 # O decorator dag; precisaremos disso para instanciar um DAG
-from airflow.decorators import dag
-
 # Operadores; precisamos disso para funcionar!
-from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
-from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
-from airflow.utils.dates import days_ago
 
 # [FIM import_module]
 
