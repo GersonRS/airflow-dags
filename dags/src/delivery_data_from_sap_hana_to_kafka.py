@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 from sys import argv
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp, lit, struct, to_json
+from pyspark.sql.functions import current_timestamp
+from pyspark.sql.functions import lit
+from pyspark.sql.functions import struct
+from pyspark.sql.functions import to_json
 
 
 # função para executar o job
-def executa():
+def executa() -> None:
     # Ler a tabela usando PySpark
     df = (
         spark.read.format("jdbc")
@@ -38,7 +43,8 @@ def executa():
         .selectExpr("CAST(value AS STRING)")
         .write.format("kafka")
         .option(
-            "kafka.bootstrap.servers", argv[5].replace('kafka_bootstrap="', "").replace('"', "")
+            "kafka.bootstrap.servers",
+            argv[5].replace('kafka_bootstrap="', "").replace('"', ""),
         )
         .option("topic", argv[6].replace('kafka_topic="', "").replace('"', ""))
         .save()
@@ -51,7 +57,8 @@ if __name__ == "__main__":
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
-            "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
         )
         .config(
             "spark.hadoop.fs.s3a.aws.credentials.provider",

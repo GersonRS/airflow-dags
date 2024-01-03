@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 from datetime import timedelta
 
 import airflow
 from airflow import XComArg
-
-# [START import_module]
 from airflow.models import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator, S3ListOperator
+from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator
+from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
-from src.s3_etl_business import read_business_json_data
 
-# [START env_variables]
+from src.s3_etl_business import read_business_json_data
 from utils.constants import PROCESSING_ZONE
+
+# [START import_module]
+# [START env_variables]
 
 # from airflow.decorators import task
 

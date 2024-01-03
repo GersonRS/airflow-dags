@@ -1,23 +1,25 @@
+from __future__ import annotations
+
 import os
-from typing import Any, Tuple
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from airflow import Dataset
-from airflow.decorators import dag, task
+from airflow.decorators import dag
+from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from astro import sql as aql
 from astro.files import File
 from matplotlib.figure import Figure
-from sklearn.metrics import (
-    accuracy_score,
-    confusion_matrix,
-    f1_score,
-    precision_score,
-    recall_score,
-)
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+
 from utils.constants import default_args
 
 # AWS S3 parameters
@@ -30,9 +32,7 @@ TARGET_COLUMN = "target"
 FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
 
 
-def metricas(
-    y_test: pd.DataFrame, y_predict: pd.DataFrame
-) -> Tuple[float, float, float, float]:
+def metricas(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> tuple[float, float, float, float]:
     acuracia = accuracy_score(y_test, y_predict)
     precision = precision_score(y_test, y_predict, average="weighted")
     recall = recall_score(y_test, y_predict, average="weighted")
@@ -157,9 +157,7 @@ def predict() -> None:
             mlflow.log_metric("F1-Score", f1)
 
     @task
-    def plot_predictions(
-        y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str
-    ) -> None:
+    def plot_predictions(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
         import matplotlib.pyplot as plt
         import mlflow
 
@@ -206,13 +204,9 @@ def predict() -> None:
 
     (
         start
-        >> add_line_to_file(
-            run_id=fetched_model_run_id, experiment_id=fetched_experiment_id
-        )
+        >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
         >> [
-            metrics(
-                y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
-            ),
+            metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(
                 y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
             ),
