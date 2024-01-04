@@ -76,4 +76,4 @@ jobs:
         uses: EndBug/add-and-commit@v9
         with:
           message: 'fix imports'
-          add: '*.py --force'
+          add: '*.py'
