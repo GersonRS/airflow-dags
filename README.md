@@ -139,25 +139,15 @@ Me acompanhe nas minhas redes sociais.
 <p align="center">
 
  <a href="https://twitter.com/gersonrs3" target="_blank" >
-
      <img alt="Twitter" src="https://img.shields.io/badge/-Twitter-9cf?logo=Twitter&logoColor=white"></a>
-
   <a href="https://instagram.com/gersonrsantos" target="_blank" >
-
     <img alt="Instagram" src="https://img.shields.io/badge/-Instagram-ff2b8e?logo=Instagram&logoColor=white"></a>
-
   <a href="https://www.linkedin.com/in/gersonrsantos/" target="_blank" >
-
     <img alt="Linkedin" src="https://img.shields.io/badge/-Linkedin-blue?logo=Linkedin&logoColor=white"></a>
-
   <a href="https://t.me/gersonrsantos" target="_blank" >
-
     <img alt="Telegram" src="https://img.shields.io/badge/-Telegram-blue?logo=Telegram&logoColor=white"></a>
-
   <a href="mailto:gersonrodriguessantos8@gmail.com" target="_blank" >
-
     <img alt="Email" src="https://img.shields.io/badge/-Email-c14438?logo=Gmail&logoColor=white"></a>
-
 </p>
 
 ---
