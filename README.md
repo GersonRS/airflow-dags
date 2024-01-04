@@ -17,7 +17,6 @@
 [![GitHub Stars](https://img.shields.io/github/stars/GersonRS/airflow-dags?logo=github&style=plastic)](https://img.shields.io/github/stars/GersonRS/airflow-dags)
 [![NPM](https://img.shields.io/github/license/GersonRS/airflow-dags?&style=plastic)](LICENSE)
 [![Status](https://img.shields.io/badge/status-active-success.svg)](https://img.shields.io/badge/status-active-success.svg)
-* [![cov](https://<you>.github.io/<repo>/badges/coverage.svg)](https://github.com/GersonRS/airflow-dags/actions)
 
 <p align="center">
   <img alt="logo" src=".github/assets/images/logo.png"/>
