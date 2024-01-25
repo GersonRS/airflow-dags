@@ -90,7 +90,7 @@ def delivery_data_from_nb_carga_contaminantes_to_snowflake_dag() -> None:
         # Esses parâmetros podem ser acessados no código do aplicativo Spark.
         params={
             "mainApplicationFile": "s3a://scripts/curated/agroindustrial/nb_carga_gatec_contaminantes.py",  # noqa: E501
-            "job_name": "delivery-data-from-nb-carga-contaminantes-to-snowflake",
+            "job_name": "nb-carga-contaminantes",
             "load_type": "overwrite",
             "owner": "DVRY_AGROINDUSTRIAL",
             "table": "CONTAMINANTES",
