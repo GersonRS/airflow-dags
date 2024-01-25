@@ -83,7 +83,7 @@ def delivery_data_from_nb_carga_contaminantes_to_snowflake_dag() -> None:
         task_id="delivery_data_from_nb_carga_contaminantes_to_snowflake_submit",
         namespace="processing",
         application_file="spark_jobs/delivery_data_from_nb_carga_contaminantes_to_snowflake.yaml",
-        kubernetes_conn_id="kubernetes_in_cluster",
+        kubernetes_conn_id="conn_kubernetes",
         do_xcom_push=True,
         # O parâmetro `params` no `SparkKubernetesOperator` é usado para passar parâmetros
         # adicionais para o `SparkApplication` que será executado no cluster Kubernetes.
@@ -120,7 +120,7 @@ def delivery_data_from_nb_carga_contaminantes_to_snowflake_dag() -> None:
         task_id="delivery_data_from_nb_carga_contaminantes_to_snowflake_sensor",
         namespace="processing",
         application_name="{{task_instance.xcom_pull(task_ids='delivery_data_from_nb_carga_contaminantes_to_snowflake_submit')['metadata']['name']}}",  # noqa: E501
-        kubernetes_conn_id="kubernetes_in_cluster",
+        kubernetes_conn_id="conn_kubernetes",
         attach_log=True,
         doc_md="""
         ### Proposta desta tarefa
