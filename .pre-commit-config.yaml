@@ -1,41 +1,47 @@
 repos:
-    - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.5.0
-      hooks:
-          - id: check-yaml
-          - id: debug-statements
-          - id: end-of-file-fixer
-          - id: trailing-whitespace
-            exclude: ^(.astro/|plugin/|.github/|data/|htmlcov|tests/fixtures/)
-    - repo: https://github.com/asottile/reorder-python-imports
-      rev: v3.12.0
-      hooks:
-          - id: reorder-python-imports
-            args:
-                [
-                    --application-directories,
-                    ".:dags",
-                    --py38-plus,
-                    --add-import,
-                    "from __future__ import annotations",
-                ]
-    - repo: https://github.com/asottile/pyupgrade
-      rev: v3.15.0
-      hooks:
-          - id: pyupgrade
-            args: [--py38-plus]
-    - repo: https://github.com/psf/black
-      rev: 23.12.1
-      hooks:
-          - id: black
-            args: [--line-length=100]
-    - repo: https://github.com/PyCQA/flake8
-      rev: 6.1.0
-      hooks:
-          - id: flake8
-    - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: v1.8.0
-      hooks:
-          - id: mypy
-            args: [--config-file=mypy.ini]
-            exclude: ^(.astro/|plugin/|.github/|data/|htmlcov)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: ^(.astro/|plugin/|.github/|data/|htmlcov|tests/fixtures/)
+      - id: pretty-format-json
+        args: ["--autofix"]
+        exclude: "Pipfile.lock"
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+  - repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.12.0
+    hooks:
+      - id: reorder-python-imports
+        args:
+          [
+            --application-directories,
+            ".:dags",
+            --py38-plus,
+            --add-import,
+            "from __future__ import annotations",
+          ]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args: [--py38-plus]
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        args: [--line-length=100]
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        args: [--config-file=mypy.ini]
+        exclude: ^(.astro/|plugin/|.github/|data/|htmlcov)
