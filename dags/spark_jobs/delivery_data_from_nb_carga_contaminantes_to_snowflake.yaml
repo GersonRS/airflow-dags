@@ -47,8 +47,8 @@ spec:
   imagePullPolicy: IfNotPresent
   mainApplicationFile: "{{ params.mainApplicationFile }}"
   sparkVersion: "3.2.3"
-  # terminationGracePeriodSecond: 60
-  # timeToLiveSeconds: 60
+  terminationGracePeriodSecond: 60
+  timeToLiveSeconds: 60
   restartPolicy:
     type: OnFailure
     onFailureRetries: 1
