@@ -1,7 +1,7 @@
 apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
 metadata:
-  name: nb-carga-contaminantes-{{ ts_nodash | lower }}-{{ task_instance.try_number }}
+  name: job-{{ params.job_name }}-{{ ts_nodash | lower }}-{{ task_instance.try_number }}
   labels:
     warehouse_path: processing
     date: "{{ ds_nodash }}"
