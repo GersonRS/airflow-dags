@@ -49,7 +49,7 @@ default_args = {
     "email": ["gerson.santos@owshq.com"],
     "email_on_failure": False,
     "email_on_retry": False,
-    "retries": 3,
+    "retries": 0,
     "retry_delay": timedelta(1),
 }
 # [FIM default_args]
