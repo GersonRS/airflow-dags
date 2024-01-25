@@ -39,9 +39,15 @@ spec:
   driver:
     env:
       - name: AWS_ACCESS_KEY_ID
-        value: dG4x2vdz4wtp2rc0
+        valueFrom:
+          secretKeyRef:
+            name: some-secret
+            key: auth-key
       - name: AWS_SECRET_ACCESS_KEY
-        value: 7PCTcAbDLHkOnzTeVZX2v20Lg8kBaaKc
+        valueFrom:
+          secretKeyRef:
+            name: some-secret
+            key: auth-key
     cores: 1
     coreLimit: "1200m"
     memory: "512m"
