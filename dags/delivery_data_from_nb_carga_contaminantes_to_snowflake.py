@@ -45,7 +45,6 @@ Execute para testar.
 default_args = {
     "owner": "GersonRS",
     "depends_on_past": False,
-    "start_date": days_ago(1),
     "email": ["gerson.santos@owshq.com"],
     "email_on_failure": False,
     "email_on_retry": False,
