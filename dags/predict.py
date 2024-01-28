@@ -195,8 +195,7 @@ def predict() -> None:
         task_id="save_predictions",
         input_data=run_prediction,
         output_file=File(
-            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS),
-            conn_id=AWS_CONN_ID,
+            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
         ),
         if_exists="replace",
     )
