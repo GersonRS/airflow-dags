@@ -9,6 +9,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator
 from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
+from airflow.utils.dates import days_ago
 
 from src.s3_etl_business import read_business_json_data
 from utils.constants import PROCESSING_ZONE
@@ -40,6 +41,7 @@ default_args = {
 with DAG(
     dag_id="s3-etl-business-part-2",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule_interval="@once",
     tags=["development", "s3", "sensor", "minio", "python", "mongodb"],

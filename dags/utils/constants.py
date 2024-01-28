@@ -1,15 +1,15 @@
 """
 Constantes
 """
+from __future__ import annotations
+
 import os
 from datetime import timedelta
 
-from airflow.utils.dates import days_ago
 from kubernetes.client import models as k8s
 
 default_args = {
     "owner": "Gerson_S",
-    "start_date": days_ago(1),
     "depends_on_past": False,
     "email": ["gersonrodriguessantos8@gmail.com"],
     "email_on_failure": False,

@@ -59,6 +59,7 @@ default_args = {
 @dag(
     dag_id="delivery-data-from-nb-carga-contaminantes-to-snowflake",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule_interval="@daily",
     max_active_runs=1,

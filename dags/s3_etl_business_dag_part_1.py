@@ -1,19 +1,22 @@
-from datetime import datetime, timedelta
+from __future__ import annotations
+
+from datetime import datetime
+from datetime import timedelta
 
 import airflow
 from airflow import XComArg
+from airflow.models import DAG
+from airflow.providers.amazon.aws.operators.s3 import S3CopyObjectOperator
+from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator
+from airflow.providers.amazon.aws.operators.s3 import S3ListOperator
+from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
+from airflow.utils.dates import days_ago
+
+from utils.constants import LANDING_ZONE
+from utils.constants import PROCESSING_ZONE
 
 # [START import_module]
-from airflow.models import DAG
-from airflow.providers.amazon.aws.operators.s3 import (
-    S3CopyObjectOperator,
-    S3DeleteObjectsOperator,
-    S3ListOperator,
-)
-from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
-
 # [START env_variables]
-from utils.constants import LANDING_ZONE, PROCESSING_ZONE
 
 # [END import_module]
 
@@ -34,6 +37,7 @@ default_args = {
 with DAG(
     dag_id="s3-etl-business-part-1",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule_interval="@once",
     tags=["development", "s3", "sensor", "minio", "python", "mongodb"],

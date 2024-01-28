@@ -7,6 +7,7 @@ from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.decorators import task_group
 from airflow.operators.empty import EmptyOperator
+from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from mlflow_provider.hooks.client import MLflowClientHook
@@ -37,6 +38,7 @@ TARGET_COLUMN = "target"
 @dag(
     dag_id="train_model",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FILE_PATH)],
     default_view="graph",

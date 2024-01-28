@@ -9,18 +9,18 @@ from airflow.decorators import task
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.sql.table import Metadata
 from astro.sql.table import Table
 
 from utils.constants import default_args
 
-# from airflow.providers.slack.operators.slack import SlackAPIPostOperator
-
 
 @dag(
     dag_id="monitoring_feature",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     # schedule=[Dataset("prediction_data")],
     schedule_interval="@daily",

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import pandas as pd
 from airflow.decorators import dag
+from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.sql.table import Metadata
 from astro.sql.table import Table
@@ -17,6 +18,7 @@ from utils.constants import default_args
 @dag(
     dag_id="temp_ingestion_copy",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule_interval="@once",
     default_view="graph",
