@@ -42,15 +42,7 @@ XCOM_BUCKET = "localxcom"
     # schedule=[Dataset("astro://postgres@?table=new_features&schema=public&database=feature_store")],
     schedule_interval="@once",
     default_view="graph",
-    tags=[
-        "development",
-        "s3",
-        "minio",
-        "python",
-        "postgres",
-        "ML",
-        "feature engineering",
-    ],
+    tags=["development", "s3", "minio", "python", "postgres", "ML", "feature engineering"],
 )
 def feature_eng() -> None:
     start = EmptyOperator(task_id="start")
