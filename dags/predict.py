@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -21,7 +22,7 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
-from utils.constants import default_args
+# from utils.constants import default_args
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -54,6 +55,17 @@ def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
     ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
     plt.close()
     return fig
+
+
+default_args = {
+    "owner": "GersonRS",
+    "depends_on_past": False,
+    "email": ["gerson.santos@owshq.com"],
+    "email_on_failure": False,
+    "email_on_retry": False,
+    "retries": 0,
+    "retry_delay": timedelta(1),
+}
 
 
 @dag(
