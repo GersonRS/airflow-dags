@@ -12,6 +12,7 @@ from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.dates import days_ago
 from astro import sql as aql
+from astro.files import File
 from matplotlib.figure import Figure
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
@@ -20,8 +21,6 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
 from utils.constants import default_args
-
-# from astro.files import File
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -94,14 +93,14 @@ def predict() -> None:
         )
         return model_run_id
 
-    @task
-    def fetch_experiment_id(**context: Any) -> str:
-        experiment_id = context["ti"].xcom_pull(
-            dag_id="train_model",
-            task_ids="fetch_experiment_id",
-            include_prior_dates=True,
-        )
-        return experiment_id
+    # @task
+    # def fetch_experiment_id(**context: Any) -> str:
+    #     experiment_id = context["ti"].xcom_pull(
+    #         dag_id="train_model",
+    #         task_ids="fetch_experiment_id",
+    #         include_prior_dates=True,
+    #     )
+    #     return experiment_id
 
     fetched_feature_df = fetch_feature_df_test()
     fetched_model_run_id = fetch_model_run_id()
@@ -118,28 +117,28 @@ def predict() -> None:
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
-    # @aql.dataframe()
-    # def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
-    #     import mlflow
+    @aql.dataframe()
+    def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
+        import mlflow
 
-    #     with mlflow.start_run(run_id=run_id):
-    #         # Métricas
-    #         acuracia, precision, recall, f1 = metricas(y_test, y_pred)
-    #         # Matriz de confusão
-    #         matriz_conf = matriz_confusao(y_test, y_pred)
-    #         temp_name = "confusion-matrix.png"
-    #         matriz_conf.savefig(temp_name)
-    #         mlflow.log_artifact(temp_name, "confusion-matrix-plots")
-    #         try:
-    #             os.remove(temp_name)
-    #         except FileNotFoundError:
-    #             print(f"{temp_name} file is not found")
+        with mlflow.start_run(run_id=run_id):
+            # Métricas
+            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
+            # Matriz de confusão
+            matriz_conf = matriz_confusao(y_test, y_pred)
+            temp_name = "confusion-matrix.png"
+            matriz_conf.savefig(temp_name)
+            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
+            try:
+                os.remove(temp_name)
+            except FileNotFoundError:
+                print(f"{temp_name} file is not found")
 
-    #         # Registro dos parâmetros e das métricas
-    #         mlflow.log_metric("Acuracia", acuracia)
-    #         mlflow.log_metric("Precision", precision)
-    #         mlflow.log_metric("Recall", recall)
-    #         mlflow.log_metric("F1-Score", f1)
+            # Registro dos parâmetros e das métricas
+            mlflow.log_metric("Acuracia", acuracia)
+            mlflow.log_metric("Precision", precision)
+            mlflow.log_metric("Recall", recall)
+            mlflow.log_metric("F1-Score", f1)
 
     @task
     def plot_predictions(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
@@ -177,24 +176,24 @@ def predict() -> None:
 
     target_data = fetch_target_test()
 
-    # pred_file = aql.export_file(
-    #     task_id="save_predictions",
-    #     input_data=run_prediction,
-    #     output_file=File(
-    #         os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
-    #     ),
-    #     if_exists="replace",
-    # )
+    pred_file = aql.export_file(
+        task_id="save_predictions",
+        input_data=run_prediction,
+        output_file=File(
+            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
+        ),
+        if_exists="replace",
+    )
 
     (
         start
         >> [
-            # metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
+            metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(
                 y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
             ),
         ]
-        # >> pred_file
+        >> pred_file
         >> end
     )
 
