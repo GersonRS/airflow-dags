@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from datetime import timedelta
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -14,6 +13,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from astro import sql as aql
+from astro.files import File
 from matplotlib.figure import Figure
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
@@ -21,9 +21,7 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
-# from astro.files import File
-
-# from utils.constants import default_args
+from utils.constants import default_args
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -56,17 +54,6 @@ def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
     ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
     plt.close()
     return fig
-
-
-default_args = {
-    "owner": "GersonRS",
-    "depends_on_past": False,
-    "email": ["gerson.santos@owshq.com"],
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "retries": 0,
-    "retry_delay": timedelta(1),
-}
 
 
 @dag(
@@ -206,14 +193,14 @@ def predict() -> None:
 
     target_data = fetch_target_test()
 
-    # pred_file = aql.export_file(
-    #     task_id="save_predictions",
-    #     input_data=run_prediction,
-    #     output_file=File(
-    #         os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
-    #     ),
-    #     if_exists="replace",
-    # )
+    pred_file = aql.export_file(
+        task_id="save_predictions",
+        input_data=run_prediction,
+        output_file=File(
+            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
+        ),
+        if_exists="replace",
+    )
 
     (
         start
@@ -224,7 +211,7 @@ def predict() -> None:
                 y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
             ),
         ]
-        # >> pred_file
+        >> pred_file
         >> end
     )
 
