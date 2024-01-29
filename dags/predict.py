@@ -22,6 +22,8 @@ from sklearn.metrics import recall_score
 
 from utils.constants import default_args
 
+# from datetime import timedelta
+
 # from astro.files import File
 
 # AWS S3 parameters
@@ -134,7 +136,7 @@ def predict() -> None:
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
-    # @task
+    # @aql.dataframe()
     # def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
     #     import mlflow
 
