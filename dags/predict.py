@@ -134,7 +134,7 @@ def predict() -> None:
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
-    @aql.dataframe()
+    @task
     def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
         import mlflow
 
