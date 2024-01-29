@@ -22,8 +22,6 @@ from sklearn.metrics import recall_score
 
 from utils.constants import default_args
 
-# from datetime import timedelta
-
 # from astro.files import File
 
 # AWS S3 parameters
@@ -136,28 +134,28 @@ def predict() -> None:
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
-    # @aql.dataframe()
-    # def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
-    #     import mlflow
+    @aql.dataframe()
+    def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
+        import mlflow
 
-    #     with mlflow.start_run(run_id=run_id):
-    #         # Métricas
-    #         acuracia, precision, recall, f1 = metricas(y_test, y_pred)
-    #         # Matriz de confusão
-    #         matriz_conf = matriz_confusao(y_test, y_pred)
-    #         temp_name = "confusion-matrix.png"
-    #         matriz_conf.savefig(temp_name)
-    #         mlflow.log_artifact(temp_name, "confusion-matrix-plots")
-    #         try:
-    #             os.remove(temp_name)
-    #         except FileNotFoundError:
-    #             print(f"{temp_name} file is not found")
+        with mlflow.start_run(run_id=run_id):
+            # Métricas
+            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
+            # Matriz de confusão
+            matriz_conf = matriz_confusao(y_test, y_pred)
+            temp_name = "confusion-matrix.png"
+            matriz_conf.savefig(temp_name)
+            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
+            try:
+                os.remove(temp_name)
+            except FileNotFoundError:
+                print(f"{temp_name} file is not found")
 
-    #         # Registro dos parâmetros e das métricas
-    #         mlflow.log_metric("Acuracia", acuracia)
-    #         mlflow.log_metric("Precision", precision)
-    #         mlflow.log_metric("Recall", recall)
-    #         mlflow.log_metric("F1-Score", f1)
+            # Registro dos parâmetros e das métricas
+            mlflow.log_metric("Acuracia", acuracia)
+            mlflow.log_metric("Precision", precision)
+            mlflow.log_metric("Recall", recall)
+            mlflow.log_metric("F1-Score", f1)
 
     @task
     def plot_predictions(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
@@ -208,7 +206,7 @@ def predict() -> None:
         start
         >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetch_experiment_id())
         >> [
-            # metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
+            metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(
                 y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
             ),
