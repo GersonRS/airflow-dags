@@ -10,6 +10,7 @@ from airflow import Dataset
 from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from astro import sql as aql
 from matplotlib.figure import Figure
@@ -22,7 +23,7 @@ from sklearn.metrics import recall_score
 from utils.constants import default_args
 
 # from datetime import timedelta
-# from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
 # from astro.files import File
 
 # AWS S3 parameters
@@ -107,23 +108,22 @@ def predict() -> None:
 
     fetched_feature_df = fetch_feature_df_test()
     fetched_model_run_id = fetch_model_run_id()
-    # fetched_experiment_id = fetch_experiment_id()
 
-    # @task
-    # def add_line_to_file(run_id: str, experiment_id: str) -> None:
-    #     s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
-    #     file_contents = s3_hook.read_key(
-    #         key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
-    #         bucket_name=MLFLOW_ARTIFACT_BUCKET,
-    #     )
-    #     if "boto3" not in file_contents:
-    #         updated_contents = file_contents + "\nboto3" + "\npandas"
-    #         s3_hook.load_string(
-    #             updated_contents,
-    #             key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
-    #             bucket_name=MLFLOW_ARTIFACT_BUCKET,
-    #             replace=True,
-    #         )
+    @task
+    def add_line_to_file(run_id: str, experiment_id: str) -> None:
+        s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
+        file_contents = s3_hook.read_key(
+            key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
+            bucket_name=MLFLOW_ARTIFACT_BUCKET,
+        )
+        if "boto3" not in file_contents:
+            updated_contents = file_contents + "\nboto3" + "\npandas"
+            s3_hook.load_string(
+                updated_contents,
+                key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
+                bucket_name=MLFLOW_ARTIFACT_BUCKET,
+                replace=True,
+            )
 
     @aql.dataframe()
     def prediction(data: pd.DataFrame, run_id: str) -> pd.DataFrame:
@@ -206,7 +206,7 @@ def predict() -> None:
 
     (
         start
-        # >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
+        >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetch_experiment_id())
         >> [
             # metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(
