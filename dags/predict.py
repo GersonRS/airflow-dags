@@ -175,6 +175,7 @@ def predict() -> None:
             mlflow.log_artifact("include/plots/iris.png", "iris-plots")
 
     target_data = fetch_target_test()
+    (start >> [fetched_feature_df, fetched_model_run_id, target_data])
 
     pred_file = aql.export_file(
         task_id="save_predictions",
