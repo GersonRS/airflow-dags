@@ -3,25 +3,29 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
 from airflow import Dataset
 from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from astro import sql as aql
-from astro.files import File
-from matplotlib.figure import Figure
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import f1_score
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
 
-# from utils.constants import default_args
+from utils.constants import default_args
+
+# from datetime import timedelta
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+# from astro.files import File
+# from matplotlib.figure import Figure
+# from sklearn.metrics import (
+#     accuracy_score,
+#     confusion_matrix,
+#     f1_score,
+#     precision_score,
+#     recall_score,
+# )
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -33,34 +37,27 @@ TARGET_COLUMN = "target"
 FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
 
 
-def metricas(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> tuple[float, float, float, float]:
-    acuracia = accuracy_score(y_test, y_predict)
-    precision = precision_score(y_test, y_predict, average="weighted")
-    recall = recall_score(y_test, y_predict, average="weighted")
-    f1 = f1_score(y_test, y_predict, average="weighted")
-    return acuracia, precision, recall, f1
+# def metricas(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> tuple[float, float, float, float]:
+#     acuracia = accuracy_score(y_test, y_predict)
+#     precision = precision_score(y_test, y_predict, average="weighted")
+#     recall = recall_score(y_test, y_predict, average="weighted")
+#     f1 = f1_score(y_test, y_predict, average="weighted")
+#     return acuracia, precision, recall, f1
 
 
-def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
-    matriz_conf = confusion_matrix(y_test.values.ravel(), y_predict)
-    fig = plt.figure()
-    ax = plt.subplot()
-    sns.heatmap(matriz_conf, annot=True, cmap="Blues", ax=ax)
+# def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
+#     matriz_conf = confusion_matrix(y_test.values.ravel(), y_predict)
+#     fig = plt.figure()
+#     ax = plt.subplot()
+#     sns.heatmap(matriz_conf, annot=True, cmap="Blues", ax=ax)
 
-    ax.set_xlabel("Valor Predito")
-    ax.set_ylabel("Valor Real")
-    ax.set_title("Matriz de Confusão")
-    ax.xaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
-    ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
-    plt.close()
-    return fig
-
-
-default_args = {
-    "owner": "GersonRS",
-    "depends_on_past": False,
-    "email": ["gerson.santos@owshq.com"],
-}
+#     ax.set_xlabel("Valor Predito")
+#     ax.set_ylabel("Valor Real")
+#     ax.set_title("Matriz de Confusão")
+#     ax.xaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
+#     ax.yaxis.set_ticklabels(["Classe 1", "Classe 2", "Classe 3"])
+#     plt.close()
+#     return fig
 
 
 @dag(
@@ -112,23 +109,23 @@ def predict() -> None:
 
     fetched_feature_df = fetch_feature_df_test()
     fetched_model_run_id = fetch_model_run_id()
-    fetched_experiment_id = fetch_experiment_id()
+    # fetched_experiment_id = fetch_experiment_id()
 
-    @task
-    def add_line_to_file(run_id: str, experiment_id: str) -> None:
-        s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
-        file_contents = s3_hook.read_key(
-            key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
-            bucket_name=MLFLOW_ARTIFACT_BUCKET,
-        )
-        if "boto3" not in file_contents:
-            updated_contents = file_contents + "\nboto3" + "\npandas"
-            s3_hook.load_string(
-                updated_contents,
-                key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
-                bucket_name=MLFLOW_ARTIFACT_BUCKET,
-                replace=True,
-            )
+    # @task
+    # def add_line_to_file(run_id: str, experiment_id: str) -> None:
+    #     s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
+    #     file_contents = s3_hook.read_key(
+    #         key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
+    #         bucket_name=MLFLOW_ARTIFACT_BUCKET,
+    #     )
+    #     if "boto3" not in file_contents:
+    #         updated_contents = file_contents + "\nboto3" + "\npandas"
+    #         s3_hook.load_string(
+    #             updated_contents,
+    #             key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
+    #             bucket_name=MLFLOW_ARTIFACT_BUCKET,
+    #             replace=True,
+    #         )
 
     @aql.dataframe()
     def prediction(data: pd.DataFrame, run_id: str) -> pd.DataFrame:
@@ -141,28 +138,28 @@ def predict() -> None:
 
     run_prediction = prediction(fetched_feature_df, fetched_model_run_id)
 
-    @aql.dataframe()
-    def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
-        import mlflow
+    # @aql.dataframe()
+    # def metrics(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
+    #     import mlflow
 
-        with mlflow.start_run(run_id=run_id):
-            # Métricas
-            acuracia, precision, recall, f1 = metricas(y_test, y_pred)
-            # Matriz de confusão
-            matriz_conf = matriz_confusao(y_test, y_pred)
-            temp_name = "confusion-matrix.png"
-            matriz_conf.savefig(temp_name)
-            mlflow.log_artifact(temp_name, "confusion-matrix-plots")
-            try:
-                os.remove(temp_name)
-            except FileNotFoundError:
-                print(f"{temp_name} file is not found")
+    #     with mlflow.start_run(run_id=run_id):
+    #         # Métricas
+    #         acuracia, precision, recall, f1 = metricas(y_test, y_pred)
+    #         # Matriz de confusão
+    #         matriz_conf = matriz_confusao(y_test, y_pred)
+    #         temp_name = "confusion-matrix.png"
+    #         matriz_conf.savefig(temp_name)
+    #         mlflow.log_artifact(temp_name, "confusion-matrix-plots")
+    #         try:
+    #             os.remove(temp_name)
+    #         except FileNotFoundError:
+    #             print(f"{temp_name} file is not found")
 
-            # Registro dos parâmetros e das métricas
-            mlflow.log_metric("Acuracia", acuracia)
-            mlflow.log_metric("Precision", precision)
-            mlflow.log_metric("Recall", recall)
-            mlflow.log_metric("F1-Score", f1)
+    #         # Registro dos parâmetros e das métricas
+    #         mlflow.log_metric("Acuracia", acuracia)
+    #         mlflow.log_metric("Precision", precision)
+    #         mlflow.log_metric("Recall", recall)
+    #         mlflow.log_metric("F1-Score", f1)
 
     @task
     def plot_predictions(y_test: pd.DataFrame, y_pred: pd.DataFrame, run_id: str) -> None:
@@ -200,25 +197,25 @@ def predict() -> None:
 
     target_data = fetch_target_test()
 
-    pred_file = aql.export_file(
-        task_id="save_predictions",
-        input_data=run_prediction,
-        output_file=File(
-            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
-        ),
-        if_exists="replace",
-    )
+    # pred_file = aql.export_file(
+    #     task_id="save_predictions",
+    #     input_data=run_prediction,
+    #     output_file=File(
+    #         os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
+    #     ),
+    #     if_exists="replace",
+    # )
 
     (
         start
-        >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
+        # >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
         >> [
-            metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
+            # metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(
                 y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id
             ),
         ]
-        >> pred_file
+        # >> pred_file
         >> end
     )
 
