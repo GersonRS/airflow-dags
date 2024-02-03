@@ -477,9 +477,9 @@ def feature_eng() -> None:
         name="risk_data",
         metadata=Metadata(
             schema="public",
-            database="postgres",
+            database="curated",
         ),
-        conn_id="conn_postgres",
+        conn_id="conn_curated",
     )
 
     extracted_df = extract_data(input_table=input_table)

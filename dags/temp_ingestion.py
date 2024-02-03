@@ -43,9 +43,9 @@ def generate_values() -> None:
         name="risk_data",
         metadata=Metadata(
             schema="public",
-            database="postgres",
+            database="curated",
         ),
-        conn_id="conn_postgres",
+        conn_id="conn_curated",
     )
 
     true_values = generate_df_values(output_table=output_table)
