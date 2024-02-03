@@ -4,7 +4,6 @@ import logging
 import os
 from typing import Any
 
-import matplotlib.pyplot as plt
 import mlflow
 import numpy as np
 import pandas as pd
@@ -21,14 +20,7 @@ from astro.dataframes.pandas import DataFrame
 from astro.files import File
 from astro.sql.table import Metadata
 from astro.sql.table import Table
-from imblearn.under_sampling import RandomUnderSampler
 from mlflow_provider.hooks.client import MLflowClientHook
-from sklearn.compose import make_column_transformer
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
 
 from src.eda import DefinirSO
 from src.eda import Map_Var_DF
@@ -215,6 +207,8 @@ def feature_eng() -> None:
 
     @aql.dataframe(columns_names_capitalization="original")
     def data_clean(df: pd.DataFrame, experiment_id: str, name: str) -> pd.DataFrame:
+        from sklearn.impute import SimpleImputer
+
         mlflow.sklearn.autolog()
 
         log.info(f"----------------------------\n{df}\n--------------------------")
@@ -287,6 +281,8 @@ def feature_eng() -> None:
 
     @aql.dataframe
     def balancer(df: pd.DataFrame, experiment_id: str, name: str) -> None:
+        import matplotlib.pyplot as plt
+
         # Definindo os parâmetros de style adicionais para o matplotlib
         rc_params["axes.titlepad"] = 12
 
@@ -354,6 +350,12 @@ def feature_eng() -> None:
 
     @aql.dataframe(multiple_outputs=True)
     def feature_eng(df: pd.DataFrame, experiment_id: str, name: str) -> Any:
+        from imblearn.under_sampling import RandomUnderSampler
+        from sklearn.compose import make_column_transformer
+        from sklearn.feature_extraction.text import CountVectorizer
+        from sklearn.model_selection import train_test_split
+        from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
         mlflow.sklearn.autolog()
 
         # Copiando o dataset
