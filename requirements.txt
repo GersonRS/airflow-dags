@@ -1,0 +1,8 @@
+airflow-provider-mlflow
+matplotlib
+minio
+scikit-learn
+mlflow-skinny
+pandas
+seaborn
+imblearn

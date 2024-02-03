@@ -5,6 +5,9 @@ Artificially generates feedback on the predictions made by the model in the pred
 """
 from __future__ import annotations
 
+import logging
+import os
+
 import pandas as pd
 from airflow.decorators import dag
 from airflow.utils.dates import days_ago
@@ -14,45 +17,35 @@ from astro.sql.table import Table
 
 from utils.constants import default_args
 
+log = logging.getLogger(__name__)
+log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
+
 
 @dag(
     dag_id="temp_ingestion",
     default_args=default_args,
     start_date=days_ago(1),
     catchup=False,
-    schedule_interval="@once",
+    schedule_interval=None,
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Generate values"],
 )
 def generate_values() -> None:
     @aql.dataframe()
     def generate_df_values() -> pd.DataFrame:
-        from sklearn import datasets
-
-        # load iris dataset
-        iris = datasets.load_iris()
-        # Since this is a bunch, create a dataframe
-        df = pd.DataFrame(iris.data)
-        df.columns = [
-            "sepal_length_cm",
-            "sepal_width_cm",
-            "petal_length_cm",
-            "petal_width_cm",
-        ]
-
-        df["target"] = iris.target
-
-        df.dropna(how="all", inplace=True)  # remove any empty lines
+        df = pd.read_csv(
+            "http://dl.dropboxusercontent.com/s/xn2a4kzf0zer0xu/acquisition_train.csv?dl=0"
+        )
 
         return df
 
     output_table = Table(
-        name="iris",
+        name="risk_data",
         metadata=Metadata(
             schema="public",
-            database="curated",
+            database="postgres",
         ),
-        conn_id="conn_curated",
+        conn_id="conn_postgres",
     )
 
     true_values = generate_df_values(output_table=output_table)

@@ -55,3 +55,47 @@ modeling_config = {
         ),
     )
 }
+
+
+# Dicionário de estado por região
+dict_regiao = {
+    "BR-RS": "Sul",
+    "BR-RR": "Norte",
+    "BR-MT": "Centro-Oeste",
+    "BR-SP": "Sudeste",
+    "BR-AC": "Norte",
+    "BR-MS": "Centro-Oeste",
+    "BR-PE": "Nordeste",
+    "BR-AM": "Norte",
+    "BR-CE": "Nordeste",
+    "BR-AP": "Norte",
+    "BR-MA": "Nosdeste",
+    "BR-BA": "Nordeste",
+    "BR-TO": "Norte",
+    "BR-RO": "Norte",
+    "BR-GO": "Centro-Oeste",
+    "BR-SE": "Nordeste",
+    "BR-RN": "Nordeste",
+    "BR-MG": "Sudeste",
+    "BR-ES": "Sudeste",
+    "BR-PR": "Sul",
+    "BR-DF": "Centro-Oeste",
+    "BR-SC": "Sul",
+    "BR-PA": "Norte",
+    "BR-AL": "Nordeste",
+    "BR-PB": "Nordeste",
+}
+
+
+# Definindo os parâmetros de style para o matplotlib
+rc_params = {
+    "axes.edgecolor": "#787878",
+    "axes.titlecolor": "#787878",
+    "axes.labelcolor": "#787878",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "xtick.color": "#787878",
+    "ytick.color": "#787878",
+    "axes.titleweight": "bold",
+    "axes.titlesize": 12,
+}

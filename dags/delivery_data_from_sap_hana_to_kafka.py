@@ -67,7 +67,7 @@ def delivery_data_from_sap_hana_to_kafka_dag() -> None:
     submit = SparkKubernetesOperator(
         task_id="delivery_data_from_sap_hana_to_kafka_submit",
         namespace="processing",
-        application_file="spark_jobs/delivery_data_from_sap_hana_to_kafka.yaml",
+        application_file="dags/delivery_data_from_sap_hana_to_kafka.yaml",
         kubernetes_conn_id="conn_kubernetes",
         do_xcom_push=True,
     )
