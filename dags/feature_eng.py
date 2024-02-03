@@ -42,7 +42,7 @@ log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
 FILE_PATH = "data.parquet"
 
 # AWS S3 parameters
-AWS_CONN_ID = "conn_minio"
+AWS_CONN_ID = "conn_minio_s3"
 DATA_BUCKET_NAME = "data"
 MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
