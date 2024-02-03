@@ -59,7 +59,7 @@ XCOM_BUCKET = "localxcom"
     default_args=default_args,
     start_date=days_ago(1),
     catchup=False,
-    schedule=[Dataset("astro://conn_postgres@?table=risk_data&schema=public&database=postgres")],
+    schedule=[Dataset("astro://conn_curated@?table=risk_data&schema=public&database=curated")],
     # schedule_interval="@once",
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "feature engineering"],
