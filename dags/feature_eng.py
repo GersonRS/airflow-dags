@@ -11,6 +11,7 @@ from airflow.decorators import task
 from airflow.decorators import task_group
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
+from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from astro.files import File
@@ -35,6 +36,7 @@ XCOM_BUCKET = "localxcom"
 @dag(
     dag_id="feaure_engineering",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule=[Dataset("astro://conn_curated@?table=risk_data&schema=public&database=curated")],
     # schedule_interval="@once",
