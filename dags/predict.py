@@ -66,7 +66,7 @@ def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
 )
 def predict() -> None:
     start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end", outlets=[Dataset("prediction_data")])
+    end = EmptyOperator(task_id="end")
 
     @task
     def fetch_feature_df_test(**context: Any) -> pd.DataFrame:

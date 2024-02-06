@@ -10,7 +10,6 @@ from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.decorators import task_group
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
 from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.files import File
@@ -34,15 +33,13 @@ MLFLOW_CONN_ID = "conn_mlflow"
 EXPERIMENT_NAME = "Default"
 MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 
-XCOM_BUCKET = "localxcom"
-
 
 @dag(
     dag_id="feaure_engineering",
     default_args=default_args,
     start_date=days_ago(1),
     catchup=False,
-    schedule=[Dataset("generate_df_values")],
+    schedule=[Dataset("astro+s3://conn_minio_s3@data/data.parquet")],
     # schedule=[Dataset("astro://postgres@?table=new_features&schema=public&database=feature_store")],
     # schedule_interval="@once",
     default_view="graph",
@@ -54,11 +51,6 @@ def feature_eng() -> None:
         task_id="end",
         outlets=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FEATURE_FILE_PATH)],
     )
-
-    create_buckets_if_not_exists = S3CreateBucketOperator.partial(
-        task_id="create_buckets_if_not_exists",
-        aws_conn_id=AWS_CONN_ID,
-    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET, XCOM_BUCKET])
 
     @task_group
     def prepare_mlflow_experiment() -> None:
@@ -158,8 +150,8 @@ def feature_eng() -> None:
             >> experiment_id
         )
 
-    orders_data = aql.load_file(
-        # data file needs to have a header row
+    iris_data = aql.load_file(
+        task_id="load_iris_data",
         input_file=File(
             path=os.path.join("s3://", DATA_BUCKET_NAME, DATA_FILE_PATH), conn_id=AWS_CONN_ID
         ),
@@ -210,30 +202,16 @@ def feature_eng() -> None:
             "y_test": y_test_df,
         }
 
-    # extracted_df = extract_data(df=orders_data)
-
-    save_data_to_other_s3 = aql.export_file(
-        task_id="save_data_to_s3",
-        input_data=orders_data,
-        output_file=File(
-            path=os.path.join("s3://", DATA_BUCKET_NAME, FEATURE_FILE_PATH), conn_id=AWS_CONN_ID
-        ),
-        if_exists="replace",
-    )
-
     (
         start
-        >> create_buckets_if_not_exists
         >> prepare_mlflow_experiment()
         >> feature_eng(
-            df=orders_data,
+            df=iris_data,
             experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",  # noqa: E501
             name="Scaler_{{ ts_nodash }}",
         )
         >> end
     )
-
-    start >> orders_data >> save_data_to_other_s3 >> end
 
 
 feature_eng()

@@ -9,9 +9,9 @@ import logging
 import os
 
 import pandas as pd
-from airflow import Dataset
 from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
+from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
 from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.files import File
@@ -21,11 +21,12 @@ from utils.constants import default_args
 log = logging.getLogger(__name__)
 log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
 
-FILE_PATH = "data.parquet"
+DATA_FILE_PATH = "data.parquet"
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
 DATA_BUCKET_NAME = "data"
+MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
 
 @dag(
@@ -39,10 +40,12 @@ DATA_BUCKET_NAME = "data"
 )
 def generate_values() -> None:
     start = EmptyOperator(task_id="start")
-    end = EmptyOperator(
-        task_id="end",
-        outlets=[Dataset("generate_df_values")],
-    )
+    end = EmptyOperator(task_id="end")
+
+    create_buckets_if_not_exists = S3CreateBucketOperator.partial(
+        task_id="create_buckets_if_not_exists",
+        aws_conn_id=AWS_CONN_ID,
+    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET])
 
     @aql.dataframe()
     def generate_df_values() -> pd.DataFrame:
@@ -71,12 +74,12 @@ def generate_values() -> None:
         task_id="save_data_to_other_s3",
         input_data=true_values,
         output_file=File(
-            path=os.path.join("s3://", DATA_BUCKET_NAME, FILE_PATH), conn_id=AWS_CONN_ID
+            path=os.path.join("s3://", DATA_BUCKET_NAME, DATA_FILE_PATH), conn_id=AWS_CONN_ID
         ),
         if_exists="replace",
     )
 
-    start >> true_values >> save_data_to_other_s3 >> end
+    (start >> [true_values, create_buckets_if_not_exists] >> save_data_to_other_s3 >> end)
 
 
 generate_true_values = generate_values()
