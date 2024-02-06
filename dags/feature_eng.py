@@ -16,7 +16,7 @@ from astro import sql as aql
 from astro.files import File
 from mlflow_provider.hooks.client import MLflowClientHook
 
-from dags.utils.constants import default_args
+from utils.constants import default_args
 
 log = logging.getLogger(__name__)
 log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
