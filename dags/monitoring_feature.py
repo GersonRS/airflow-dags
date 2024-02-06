@@ -47,7 +47,7 @@ def feature_monitoring() -> None:
     curr_data = aql.load_file(
         task_id="get_curr_data",
         input_file=File(
-            path=os.path.join("s3://" + DATA_BUCKET_NAME, FEATURE_FILE_PATH),
+            path=os.path.join("s3://" + DATA_BUCKET_NAME, DATA_FILE_PATH),
             conn_id=AWS_CONN_ID,
         ),
     )
