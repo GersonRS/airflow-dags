@@ -1,16 +1,17 @@
-version: "3.7"
+version: "3.1"
 
 services:
-  jupyter:
-    image: jupyter/all-spark-notebook
-    environment:
-      JUPYTER_ENABLE_LAB: "yes"
-    ports:
-      - "8888:8888"
-    volumes:
-      - ./data:/home/jovyan/work
-    networks:
-      - airflow
+  # jupyter:
+  #   image: jupyter/all-spark-notebook
+  #   restart: unless-stopped
+  #   environment:
+  #     JUPYTER_ENABLE_LAB: "yes"
+  #   ports:
+  #     - "8888:8888"
+  #   volumes:
+  #     - ./data:/home/jovyan/work
+  #   networks:
+  #     - airflow
 
   # zookeeper:
   #   image: confluentinc/cp-zookeeper:7.0.1
@@ -18,8 +19,6 @@ services:
   #   environment:
   #     ZOOKEEPER_CLIENT_PORT: 2181
   #     ZOOKEEPER_TICK_TIME: 2000
-  #   networks:
-  #     - airflow
 
   # broker:
   #   image: confluentinc/cp-kafka:7.0.1
@@ -37,8 +36,6 @@ services:
   #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
   #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
   #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-  #   networks:
-  #     - airflow
 
   # schemaregistry:
   #   image: confluentinc/cp-schema-registry:7.2.1
@@ -55,8 +52,6 @@ services:
   #     SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "http"
   #     SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
   #     SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
-  #   networks:
-  #     - airflow
 
   # kafka-ui:
   #   container_name: kafka-ui
@@ -72,33 +67,24 @@ services:
   #     KAFKA_CLUSTERS_0_METRICS_PORT: 9997
   #     KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schemaregistry:8085
   #     DYNAMIC_CONFIG_ENABLED: 'true'
-  #   networks:
-  #     - airflow
+
+  postgres:
+    volumes:
+      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
 
   minio:
     restart: always
     image: minio/minio
     volumes:
-      - ./minio_data:/data
+      - minio_data:/data
     ports:
       - "${MINIO_PORT}:9000"
       - "${MINIO_CONSOLE_PORT}:9001"
     networks:
       - airflow
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_ADDRESS=${MINIO_ADDRESS}
-      - MINIO_PORT=${MINIO_PORT}
-      - MINIO_STORAGE_USE_HTTPS=${MINIO_STORAGE_USE_HTTPS}
-      - MINIO_CONSOLE_ADDRESS=${MINIO_CONSOLE_ADDRESS}
-      - MINIO_DEFAULT_BUCKETS=${MLFLOW_BUCKET_NAME}
+    env_file:
+      - .env
     command: server /data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
 
   mlflow:
     # restart: always
@@ -109,9 +95,9 @@ services:
     networks:
       - airflow
     environment:
-      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY}
-      - MLFLOW_S3_ENDPOINT_URL=http://s3:${MINIO_PORT}
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - MLFLOW_S3_IGNORE_TLS=true
     command: >
       mlflow server
@@ -119,17 +105,6 @@ services:
       --host 0.0.0.0
       --serve-artifacts
       --artifacts-destination s3://${MLFLOW_BUCKET_NAME}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT}/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  airflow:
-    name: airflow-dags_487b6a_airflow
-    external: true
 
 volumes:
-  pgdata2:
   minio_data:

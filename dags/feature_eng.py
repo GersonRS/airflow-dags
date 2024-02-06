@@ -13,15 +13,16 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
 from airflow.utils.dates import days_ago
 from astro import sql as aql
-from astro.dataframes.pandas import DataFrame
 from astro.files import File
-from astro.sql.table import Metadata
-from astro.sql.table import Table
 from mlflow_provider.hooks.client import MLflowClientHook
 
-from utils.constants import default_args
+from dags.utils.constants import default_args
 
-FILE_PATH = "data.parquet"
+log = logging.getLogger(__name__)
+log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
+
+FEATURE_FILE_PATH = "features.parquet"
+DATA_FILE_PATH = "data.parquet"
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -41,8 +42,9 @@ XCOM_BUCKET = "localxcom"
     default_args=default_args,
     start_date=days_ago(1),
     catchup=False,
+    schedule=[Dataset("generate_df_values")],
     # schedule=[Dataset("astro://postgres@?table=new_features&schema=public&database=feature_store")],
-    schedule_interval="@once",
+    # schedule_interval="@once",
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "feature engineering"],
 )
@@ -50,7 +52,7 @@ def feature_eng() -> None:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(
         task_id="end",
-        outlets=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FILE_PATH)],
+        outlets=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FEATURE_FILE_PATH)],
     )
 
     create_buckets_if_not_exists = S3CreateBucketOperator.partial(
@@ -156,26 +158,22 @@ def feature_eng() -> None:
             >> experiment_id
         )
 
-    @aql.transform
-    def extract_data(input_table: Table) -> DataFrame:
-        return """
-            SELECT
-                sepal_length_cm,
-                sepal_width_cm,
-                petal_length_cm,
-                petal_width_cm,
-                target
-            FROM {{input_table}}
-        """
+    orders_data = aql.load_file(
+        # data file needs to have a header row
+        input_file=File(
+            path=os.path.join("s3://", DATA_BUCKET_NAME, DATA_FILE_PATH), conn_id=AWS_CONN_ID
+        ),
+    )
 
     @aql.dataframe(multiple_outputs=True)
     def feature_eng(df: pd.DataFrame, experiment_id: str, name: str) -> Any:
         import mlflow
-        import pandas as pd
         from sklearn.model_selection import train_test_split
         from sklearn.preprocessing import StandardScaler
 
         mlflow.sklearn.autolog()
+
+        print(df.head())
 
         y = df["target"]
         X = df.drop(columns=["target"])[
@@ -189,7 +187,7 @@ def feature_eng() -> None:
             mlflow.sklearn.log_model(scaler, artifact_path="scaler")
             mlflow.log_metrics(pd.DataFrame(scaler.mean_, index=X.columns)[0].to_dict())
 
-        logging.info(pd.concat([X, y], axis=1).head())
+        log.info(pd.concat([X, y], axis=1).head())
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -212,22 +210,13 @@ def feature_eng() -> None:
             "y_test": y_test_df,
         }
 
-    input_table = Table(
-        name="iris",
-        metadata=Metadata(
-            schema="public",
-            database="curated",
-        ),
-        conn_id="conn_curated",
-    )
-
-    extracted_df = extract_data(input_table=input_table)
+    # extracted_df = extract_data(df=orders_data)
 
     save_data_to_other_s3 = aql.export_file(
         task_id="save_data_to_s3",
-        input_data=extracted_df,
+        input_data=orders_data,
         output_file=File(
-            path=os.path.join("s3://", DATA_BUCKET_NAME, FILE_PATH), conn_id=AWS_CONN_ID
+            path=os.path.join("s3://", DATA_BUCKET_NAME, FEATURE_FILE_PATH), conn_id=AWS_CONN_ID
         ),
         if_exists="replace",
     )
@@ -237,14 +226,14 @@ def feature_eng() -> None:
         >> create_buckets_if_not_exists
         >> prepare_mlflow_experiment()
         >> feature_eng(
-            df=extracted_df,
+            df=orders_data,
             experiment_id="{{ ti.xcom_pull(task_ids='prepare_mlflow_experiment.get_current_experiment_id') }}",  # noqa: E501
             name="Scaler_{{ ts_nodash }}",
         )
         >> end
     )
 
-    start >> extracted_df >> save_data_to_other_s3 >> end
+    start >> orders_data >> save_data_to_other_s3 >> end
 
 
 feature_eng()

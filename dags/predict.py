@@ -29,7 +29,7 @@ MLFLOW_ARTIFACT_BUCKET = "mlflow"
 MLFLOW_CONN_ID = "conn_mlflow"
 # Data parameters
 TARGET_COLUMN = "target"
-FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
+FILE_TO_SAVE_PREDICTIONS = "iris_predictions.parquet"
 
 
 def metricas(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> tuple[float, float, float, float]:
@@ -167,12 +167,12 @@ def predict() -> None:
         # Add a legend
         ax.legend(loc="lower right")
 
-        os.makedirs(os.path.dirname("include/plots/"), exist_ok=True)
+        os.makedirs(os.path.dirname("plots/"), exist_ok=True)
         # Save the plot as a PNG file
-        plt.savefig("include/plots/iris.png")
+        plt.savefig("plots/iris.png")
         plt.close()
         with mlflow.start_run(run_id=run_id):
-            mlflow.log_artifact("include/plots/iris.png", "iris-plots")
+            mlflow.log_artifact("plots/iris.png", "iris-plots")
 
     target_data = fetch_target_test()
     (start >> [fetched_feature_df, fetched_model_run_id, target_data])

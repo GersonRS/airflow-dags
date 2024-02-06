@@ -18,7 +18,7 @@ from sklearn.linear_model import LogisticRegression
 
 from utils.constants import default_args
 
-FILE_PATH = "data.parquet"
+FILE_PATH = "features.parquet"
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"

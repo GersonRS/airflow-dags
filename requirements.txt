@@ -6,3 +6,4 @@ mlflow-skinny
 pandas
 seaborn
 imblearn
+s3fs
