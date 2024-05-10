@@ -14,12 +14,8 @@ from __future__ import annotations
 from datetime import timedelta
 
 from airflow.decorators import dag
-from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
-    SparkKubernetesOperator,
-)
-from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import (
-    SparkKubernetesSensor,
-)
+from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
+from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
 from airflow.utils.dates import days_ago
 
 # [INICIO import_module]
@@ -34,7 +30,6 @@ from airflow.utils.dates import days_ago
 default_args = {
     "owner": "GersonRS",
     "depends_on_past": False,
-    "start_date": days_ago(1),
     "email": ["gersonrodriguessantos8@gmail.com"],
     "email_on_failure": False,
     "email_on_retry": False,
@@ -49,6 +44,7 @@ default_args = {
 @dag(
     dag_id="delivery-data-from-sap-hana-to-kafka",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule_interval="@once",
     default_view="graph",
@@ -71,7 +67,7 @@ def delivery_data_from_sap_hana_to_kafka_dag() -> None:
     submit = SparkKubernetesOperator(
         task_id="delivery_data_from_sap_hana_to_kafka_submit",
         namespace="processing",
-        application_file="spark_jobs/delivery_data_from_sap_hana_to_kafka.yaml",
+        application_file="dags/delivery_data_from_sap_hana_to_kafka.yaml",
         kubernetes_conn_id="conn_kubernetes",
         do_xcom_push=True,
     )

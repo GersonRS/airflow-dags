@@ -10,7 +10,7 @@ from airflow import Dataset
 from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.files import File
 from matplotlib.figure import Figure
@@ -29,7 +29,7 @@ MLFLOW_ARTIFACT_BUCKET = "mlflow"
 MLFLOW_CONN_ID = "conn_mlflow"
 # Data parameters
 TARGET_COLUMN = "target"
-FILE_TO_SAVE_PREDICTIONS = "iris_predictions.csv"
+FILE_TO_SAVE_PREDICTIONS = "iris_predictions.parquet"
 
 
 def metricas(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> tuple[float, float, float, float]:
@@ -58,15 +58,15 @@ def matriz_confusao(y_test: pd.DataFrame, y_predict: pd.DataFrame) -> Figure:
 @dag(
     dag_id="predict",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule=[Dataset("model_trained")],
     default_view="graph",
-    render_template_as_native_obj=True,
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Predict"],
 )
 def predict() -> None:
     start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end", outlets=[Dataset("prediction_data")])
+    end = EmptyOperator(task_id="end")
 
     @task
     def fetch_feature_df_test(**context: Any) -> pd.DataFrame:
@@ -93,34 +93,18 @@ def predict() -> None:
         )
         return model_run_id
 
-    @task
-    def fetch_experiment_id(**context: Any) -> str:
-        experiment_id = context["ti"].xcom_pull(
-            dag_id="train_model",
-            task_ids="fetch_experiment_id",
-            include_prior_dates=True,
-        )
-        return experiment_id
+    # @task
+    # def fetch_experiment_id(**context: Any) -> str:
+    #     experiment_id = context["ti"].xcom_pull(
+    #         dag_id="train_model",
+    #         task_ids="fetch_experiment_id",
+    #         include_prior_dates=True,
+    #     )
+    #     return experiment_id
 
     fetched_feature_df = fetch_feature_df_test()
     fetched_model_run_id = fetch_model_run_id()
-    fetched_experiment_id = fetch_experiment_id()
-
-    @task
-    def add_line_to_file(run_id: str, experiment_id: str) -> None:
-        s3_hook = S3Hook(aws_conn_id=AWS_CONN_ID)
-        file_contents = s3_hook.read_key(
-            key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
-            bucket_name=MLFLOW_ARTIFACT_BUCKET,
-        )
-        if "boto3" not in file_contents:
-            updated_contents = file_contents + "\nboto3" + "\npandas"
-            s3_hook.load_string(
-                updated_contents,
-                key=f"{experiment_id}/{run_id}/artifacts/model/requirements.txt",
-                bucket_name=MLFLOW_ARTIFACT_BUCKET,
-                replace=True,
-            )
+    # fetched_experiment_id = fetch_experiment_id()
 
     @aql.dataframe()
     def prediction(data: pd.DataFrame, run_id: str) -> pd.DataFrame:
@@ -183,28 +167,27 @@ def predict() -> None:
         # Add a legend
         ax.legend(loc="lower right")
 
-        os.makedirs(os.path.dirname("include/plots/"), exist_ok=True)
+        os.makedirs(os.path.dirname("plots/"), exist_ok=True)
         # Save the plot as a PNG file
-        plt.savefig("include/plots/iris.png")
+        plt.savefig("plots/iris.png")
         plt.close()
         with mlflow.start_run(run_id=run_id):
-            mlflow.log_artifact("include/plots/iris.png", "iris-plots")
+            mlflow.log_artifact("plots/iris.png", "iris-plots")
 
     target_data = fetch_target_test()
+    (start >> [fetched_feature_df, fetched_model_run_id, target_data])
 
     pred_file = aql.export_file(
         task_id="save_predictions",
         input_data=run_prediction,
         output_file=File(
-            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS),
-            conn_id=AWS_CONN_ID,
+            os.path.join("s3://", DATA_BUCKET_NAME, FILE_TO_SAVE_PREDICTIONS), AWS_CONN_ID
         ),
         if_exists="replace",
     )
 
     (
         start
-        >> add_line_to_file(run_id=fetched_model_run_id, experiment_id=fetched_experiment_id)
         >> [
             metrics(y_test=target_data, y_pred=run_prediction, run_id=fetched_model_run_id),
             plot_predictions(

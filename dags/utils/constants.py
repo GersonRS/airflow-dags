@@ -1,15 +1,15 @@
 """
 Constantes
 """
+from __future__ import annotations
+
 import os
 from datetime import timedelta
 
-from airflow.utils.dates import days_ago
 from kubernetes.client import models as k8s
 
 default_args = {
     "owner": "Gerson_S",
-    "start_date": days_ago(1),
     "depends_on_past": False,
     "email": ["gersonrodriguessantos8@gmail.com"],
     "email_on_failure": False,
@@ -54,4 +54,48 @@ modeling_config = {
             ]
         ),
     )
+}
+
+
+# Dicionário de estado por região
+dict_regiao = {
+    "BR-RS": "Sul",
+    "BR-RR": "Norte",
+    "BR-MT": "Centro-Oeste",
+    "BR-SP": "Sudeste",
+    "BR-AC": "Norte",
+    "BR-MS": "Centro-Oeste",
+    "BR-PE": "Nordeste",
+    "BR-AM": "Norte",
+    "BR-CE": "Nordeste",
+    "BR-AP": "Norte",
+    "BR-MA": "Nosdeste",
+    "BR-BA": "Nordeste",
+    "BR-TO": "Norte",
+    "BR-RO": "Norte",
+    "BR-GO": "Centro-Oeste",
+    "BR-SE": "Nordeste",
+    "BR-RN": "Nordeste",
+    "BR-MG": "Sudeste",
+    "BR-ES": "Sudeste",
+    "BR-PR": "Sul",
+    "BR-DF": "Centro-Oeste",
+    "BR-SC": "Sul",
+    "BR-PA": "Norte",
+    "BR-AL": "Nordeste",
+    "BR-PB": "Nordeste",
+}
+
+
+# Definindo os parâmetros de style para o matplotlib
+rc_params = {
+    "axes.edgecolor": "#787878",
+    "axes.titlecolor": "#787878",
+    "axes.labelcolor": "#787878",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "xtick.color": "#787878",
+    "ytick.color": "#787878",
+    "axes.titleweight": "bold",
+    "axes.titlesize": 12,
 }

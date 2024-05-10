@@ -7,6 +7,7 @@ from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.decorators import task_group
 from airflow.operators.empty import EmptyOperator
+from airflow.utils.dates import days_ago
 from astro import sql as aql
 from astro.dataframes.pandas import DataFrame
 from mlflow_provider.hooks.client import MLflowClientHook
@@ -17,7 +18,7 @@ from sklearn.linear_model import LogisticRegression
 
 from utils.constants import default_args
 
-FILE_PATH = "data.parquet"
+FILE_PATH = "features.parquet"
 
 # AWS S3 parameters
 AWS_CONN_ID = "conn_minio_s3"
@@ -26,7 +27,7 @@ MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
 # MLFlow parameters
 MLFLOW_CONN_ID = "conn_mlflow"
-EXPERIMENT_NAME = "Default"
+EXPERIMENT_NAME = "POC"
 REGISTERED_MODEL_NAME = "modelIris"
 MAX_RESULTS_MLFLOW_LIST_EXPERIMENTS = 1000
 
@@ -37,6 +38,7 @@ TARGET_COLUMN = "target"
 @dag(
     dag_id="train_model",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule=[Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FILE_PATH)],
     default_view="graph",

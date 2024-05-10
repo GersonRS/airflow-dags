@@ -3,22 +3,50 @@
 
 Artificially generates feedback on the predictions made by the model in the predict DAG.
 """
+from __future__ import annotations
+
+import logging
+import os
+
 import pandas as pd
 from airflow.decorators import dag
+from airflow.operators.empty import EmptyOperator
+from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
+from airflow.utils.dates import days_ago
 from astro import sql as aql
-from astro.sql.table import Metadata, Table
+from astro.files import File
+
 from utils.constants import default_args
+
+log = logging.getLogger(__name__)
+log.setLevel(os.getenv("AIRFLOW__LOGGING__FAB_LOGGING_LEVEL", "INFO"))
+
+DATA_FILE_PATH = "data.parquet"
+
+# AWS S3 parameters
+AWS_CONN_ID = "conn_minio_s3"
+DATA_BUCKET_NAME = "data"
+MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
 
 @dag(
     dag_id="temp_ingestion",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     schedule_interval="@once",
     default_view="graph",
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Generate values"],
 )
 def generate_values() -> None:
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+
+    create_buckets_if_not_exists = S3CreateBucketOperator.partial(
+        task_id="create_buckets_if_not_exists",
+        aws_conn_id=AWS_CONN_ID,
+    ).expand(bucket_name=[DATA_BUCKET_NAME, MLFLOW_ARTIFACT_BUCKET])
+
     @aql.dataframe()
     def generate_df_values() -> pd.DataFrame:
         from sklearn import datasets
@@ -40,18 +68,18 @@ def generate_values() -> None:
 
         return df
 
-    output_table = Table(
-        name="iris",
-        metadata=Metadata(
-            schema="public",
-            database="curated",
+    true_values = generate_df_values()
+
+    save_data_to_other_s3 = aql.export_file(
+        task_id="save_data_to_other_s3",
+        input_data=true_values,
+        output_file=File(
+            path=os.path.join("s3://", DATA_BUCKET_NAME, DATA_FILE_PATH), conn_id=AWS_CONN_ID
         ),
-        conn_id="conn_curated",
+        if_exists="replace",
     )
 
-    true_values = generate_df_values(output_table=output_table)
-
-    true_values
+    (start >> [true_values, create_buckets_if_not_exists] >> save_data_to_other_s3 >> end)
 
 
 generate_true_values = generate_values()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import pandas as pd
@@ -9,18 +10,25 @@ from airflow.decorators import task
 from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.utils.dates import days_ago
 from astro import sql as aql
-from astro.sql.table import Metadata
-from astro.sql.table import Table
+from astro.files import File
 
 from utils.constants import default_args
 
-# from airflow.providers.slack.operators.slack import SlackAPIPostOperator
+FEATURE_FILE_PATH = "features.parquet"
+DATA_FILE_PATH = "data.parquet"
+
+# AWS S3 parameters
+AWS_CONN_ID = "conn_minio_s3"
+DATA_BUCKET_NAME = "data"
+MLFLOW_ARTIFACT_BUCKET = "mlflow"
 
 
 @dag(
     dag_id="monitoring_feature",
     default_args=default_args,
+    start_date=days_ago(1),
     catchup=False,
     # schedule=[Dataset("prediction_data")],
     schedule_interval="@daily",
@@ -29,19 +37,22 @@ from utils.constants import default_args
     tags=["development", "s3", "minio", "python", "postgres", "ML", "Monitoring"],
 )
 def feature_monitoring() -> None:
-    @aql.transform
-    def get_ref_data(input_table: Table) -> Any:
-        return """
-        SELECT sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
-        FROM {{input_table}}
-        """
+    ref_data = aql.load_file(
+        task_id="get_ref_data",
+        input_file=File(
+            path=os.path.join("s3://", DATA_BUCKET_NAME, DATA_FILE_PATH), conn_id=AWS_CONN_ID
+        ),
+    )
 
-    @aql.transform
-    def get_curr_data(input_table: Table) -> Any:
-        return """
-        SELECT sepal_length_cm, sepal_width_cm, petal_length_cm, petal_width_cm
-        FROM {{input_table}}
-        """
+    curr_data = aql.load_file(
+        task_id="get_curr_data",
+        input_file=File(
+            path=os.path.join("s3://" + DATA_BUCKET_NAME, DATA_FILE_PATH),
+            conn_id=AWS_CONN_ID,
+        ),
+    )
+
+    # feature_data = (Dataset("s3://" + DATA_BUCKET_NAME + "/temp/" + FEATURE_FILE_PATH),)
 
     @aql.dataframe(columns_names_capitalization="lower")
     def generate_reports(ref_data: pd.DataFrame, curr_data: pd.DataFrame) -> dict[str, Any]:
@@ -52,27 +63,6 @@ def feature_monitoring() -> None:
         suite.run(reference_data=ref_data, current_data=curr_data)
 
         return suite.as_dict()
-
-    ref_table = Table(
-        name="iris",
-        metadata=Metadata(
-            schema="public",
-            database="curated",
-        ),
-        conn_id="conn_curated",
-    )
-
-    curr_table = Table(
-        name="iris",
-        metadata=Metadata(
-            schema="public",
-            database="curated",
-        ),
-        conn_id="conn_curated",
-    )
-
-    ref_data = get_ref_data(input_table=ref_table)
-    curr_data = get_curr_data(input_table=curr_table)
 
     reports = generate_reports(ref_data=ref_data, curr_data=curr_data)
 
@@ -110,7 +100,7 @@ def feature_monitoring() -> None:
     #     channel="#integrations",
     # )
 
-    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="retrain")
+    trigger_retrain = TriggerDagRunOperator(task_id="trigger_retrain", trigger_dag_id="train_model")
 
     cleanup = aql.cleanup()
 
