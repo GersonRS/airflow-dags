@@ -22,10 +22,10 @@ from airflow.decorators import task
 # Registra o decorator @task.ray (provider apache-airflow-provider-ray).
 from airflow.providers.ray.decorators import ray  # noqa: F401
 
-# Imagem customizada com o bootstrap do provider (Python 3.12, alinhada ao host).
+# Imagem customizada com o bootstrap do provider (Python 3.13, alinhada ao host).
 # Usa o registry local integrado ao kind.
-RAY_IMAGE = "kind-registry:5000/ray-airflow-provider:2.35.0"
-RAY_VERSION = "2.35.0"
+RAY_IMAGE = "kind-registry:5000/ray-airflow-provider:2.54.0"
+RAY_VERSION = "2.54.0"
 RAY_NAMESPACE = "orchestrator"
 
 # Configuração do backend de XCom (S3/MinIO).
