@@ -2,7 +2,7 @@
 DAG de teste do RayJobOperator (apache-airflow-provider-ray).
 
 Testa o operador de ponta a ponta no cluster kind + kuberay-operator + MinIO,
-usando a imagem customizada `ray-airflow-provider:2.35.0` (Python 3.12,
+usando a imagem customizada `ray-airflow-provider:2.54.0` (Python 3.13,
 alinhada ao host que serializa a função).
 
 Requisitos de configuração no Airflow:
@@ -10,8 +10,8 @@ Requisitos de configuração no Airflow:
   - Variável `xcom_s3_bucket` = "ray-xcom-test" (ou usar XCOM_S3_BUCKET env)
   - Connection Kubernetes (`kubernetes_default`) apontando para o cluster
     kind (kubeconfig), ou `in_cluster=True` se o Airflow rodar dentro do cluster.
-  - A imagem `kind-registry:5000/ray-airflow-provider:2.35.0` deve estar
-    acessível pelo cluster (registry local integrado ao kind).
+  - A imagem `ray-airflow-provider:2.54.0` deve estar acessível pelo cluster
+    (carregada nos nós do kind via `kind load docker-image`).
 """
 
 from datetime import datetime, timedelta
@@ -23,19 +23,21 @@ from airflow.decorators import task
 from airflow.providers.ray.decorators import ray  # noqa: F401
 
 # Imagem customizada com o bootstrap do provider (Python 3.13, alinhada ao host).
-# Usa o registry local integrado ao kind.
-RAY_IMAGE = "kind-registry:5000/ray-airflow-provider:2.54.0"
+# Carregada diretamente nos nós do kind via `kind load docker-image`
+# (sem registry local).
+RAY_IMAGE = "ray-airflow-provider:2.54.0"
 RAY_VERSION = "2.54.0"
 RAY_NAMESPACE = "orchestrator"
 
 # Configuração do backend de XCom (S3/MinIO).
 # O bucket e as credenciais são lidos de variáveis do Airflow ou env vars.
+# O endpoint usa o HTTPRoute minio-api exposto pelo istio-gateway.
 RAY_ENV = {
     "RAY_XCOM_BACKEND": "s3",
     "XCOM_S3_BUCKET": "ray-xcom-test",
     "MINIO_ENDPOINT": "https://minio-api.apps.172-18-0-100.nip.io",
     "AWS_ACCESS_KEY_ID": "root",
-    "AWS_SECRET_ACCESS_KEY": "ciGINTlAcysRpUQq",
+    "AWS_SECRET_ACCESS_KEY": "bkLkkM26cx1WMsOF",
     "RAY_XCOM_VERIFY_SSL": "false",
 }
 
